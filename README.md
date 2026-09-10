@@ -1,4 +1,4 @@
-# TriNetra HAR System — ISRO BAS Experiment Monitor
+# BASGUARD — ISRO BAS Experiment Monitor
 
 **Smart India Hackathon 2026 — Problem Statement PS26174 (ISRO)**  
 **AI-Based Human Activity Recognition (HAR) for On-board BAS Experiments**
@@ -8,7 +8,7 @@
 ![YOLOv8](https://img.shields.io/badge/YOLO-v8_Nano-00FFFF.svg)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A65A.svg)
 
-TriNetra is an end-to-end, CPU-optimized AI pipeline designed to monitor astronaut actions during on-board Biological Activity Space (BAS) experiments. It enforces strict procedural protocols, logs anomalies, and provides a professional "Mission Control" telemetry dashboard.
+BASGUARD is an end-to-end, CPU-optimized AI pipeline designed to monitor astronaut actions during on-board Biological Activity Space (BAS) experiments. It enforces strict procedural protocols, logs anomalies, and provides a professional "Mission Control" telemetry dashboard.
 
 ---
 
