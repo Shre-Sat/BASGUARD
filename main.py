@@ -268,8 +268,17 @@ class HARPipeline:
                     predicted_step, confidence, preconditions
                 )
 
+                # Check if current event is an anomaly
+                anomaly = self.fsm._candidate_step is None and self.fsm.current_step in [
+                    EventType.SKIPPED_STEP, EventType.OUT_OF_SEQUENCE, EventType.DURATION_ANOMALY
+                ]
+                
                 # ── Layer 7: Streaming ───────────────────────────
-                self.streamer.write_frame(frame)
+                self.streamer.write_frame(
+                    frame, 
+                    current_step=self.fsm.current_step,
+                    anomaly_flag=anomaly
+                )
 
                 # ── Layer 8: GUI Update ──────────────────────────
                 process_time = (time.monotonic() - process_start) * 1000

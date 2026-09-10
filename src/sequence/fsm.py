@@ -3,6 +3,7 @@ Sequence Reasoning Layer — Finite State Machine Engine
 ========================================================
 Deterministic FSM that tracks experiment progress, detects
 errors (skipped/out-of-sequence steps), and suggests next steps.
+Upgraded with Petri-net token tracking and duration anomaly detection.
 """
 
 import time
@@ -27,6 +28,8 @@ class EventType(Enum):
     EXPERIMENT_STARTED = "experiment_started"
     EXPERIMENT_COMPLETE = "experiment_complete"
     PRECONDITION_FAILED = "precondition_failed"
+    DURATION_ANOMALY = "duration_anomaly"
+    STEP_REPEAT = "step_repeat"
 
 
 @dataclass
@@ -38,6 +41,15 @@ class FSMEvent:
     confidence: float = 0.0
     timestamp: float = field(default_factory=time.time)
     details: Dict = field(default_factory=dict)
+
+
+@dataclass
+class Token:
+    """Petri-net style token representing state at a specific step."""
+    step_id: str
+    entry_time: float
+    exit_time: Optional[float] = None
+    status: str = "ACTIVE"
 
 
 class ExperimentFSM:
@@ -56,9 +68,7 @@ class ExperimentFSM:
 
         # State tracking
         self._current_step = "IDLE"
-        self._completed_steps: Set[str] = set()
-        self._step_history: List[tuple] = []  # (step_id, timestamp)
-        self._step_start_time: float = time.time()
+        self._tokens: Dict[str, Token] = {}
         self._experiment_started = False
         self._experiment_complete = False
 
@@ -68,6 +78,9 @@ class ExperimentFSM:
 
         # Event listeners
         self._listeners: List[Callable[[FSMEvent], None]] = []
+        
+        # Initialize token at IDLE
+        self._tokens["IDLE"] = Token(step_id="IDLE", entry_time=time.time())
 
         logger.info(f"FSM initialized with protocol: {protocol.name}")
 
@@ -105,10 +118,11 @@ class ExperimentFSM:
             self._emit_event(event)
             return event
 
-        # Same step as current → no transition needed
+        # Same step as current → check duration anomaly, but no transition
         if predicted_step == self._current_step:
             self._candidate_step = None
             self._candidate_count = 0
+            self._check_duration_anomaly()
             return None
 
         # Candidate stability check
@@ -124,6 +138,31 @@ class ExperimentFSM:
 
         # Step is stable — validate the transition
         return self._attempt_transition(predicted_step, confidence, preconditions_met)
+        
+    def _check_duration_anomaly(self):
+        """Check if current step is taking too long."""
+        token = self._tokens.get(self._current_step)
+        if not token or token.status != "ACTIVE":
+            return
+            
+        step_info = self.protocol.get_step(self._current_step)
+        if not step_info:
+            return
+            
+        min_sec, max_sec = step_info.expected_duration_range
+        duration = time.time() - token.entry_time
+        
+        if max_sec > 0 and duration > max_sec * 1.5:  # 50% over max
+            # Only emit once per step (by marking it internally)
+            if not getattr(token, "duration_warned", False):
+                token.duration_warned = True
+                event = FSMEvent(
+                    event_type=EventType.DURATION_ANOMALY,
+                    step_id=self._current_step,
+                    message=f"Step '{step_info.name}' is taking longer than expected ({duration:.1f}s)",
+                    details={"expected_max": max_sec, "actual": duration}
+                )
+                self._emit_event(event)
 
     def _attempt_transition(
         self,
@@ -132,6 +171,20 @@ class ExperimentFSM:
         preconditions_met: Dict[str, bool]
     ) -> FSMEvent:
         """Attempt to transition to a new step."""
+
+        # Check if step was already completed
+        if target_step in self._tokens and self._tokens[target_step].status == "COMPLETED":
+            event = FSMEvent(
+                event_type=EventType.STEP_REPEAT,
+                step_id=target_step,
+                message=f"Warning: Step '{target_step}' was already completed.",
+                confidence=confidence
+            )
+            self._emit_event(event)
+            # Reset candidate
+            self._candidate_step = None
+            self._candidate_count = 0
+            return event
 
         # Check if transition is valid
         is_valid = self.protocol.is_valid_transition(self._current_step, target_step)
@@ -151,6 +204,10 @@ class ExperimentFSM:
                 }
             )
             self._emit_event(event)
+            
+            # Reset candidate so we don't spam errors
+            self._candidate_step = None
+            self._candidate_count = 0
             return event
 
         # Check preconditions
@@ -166,37 +223,57 @@ class ExperimentFSM:
                 details={"unmet_preconditions": unmet}
             )
             self._emit_event(event)
+            
+            # Reset candidate
+            self._candidate_step = None
+            self._candidate_count = 0
             return event
 
         # Valid transition — execute it
         return self._execute_transition(target_step, confidence)
 
     def _execute_transition(self, target_step: str, confidence: float) -> FSMEvent:
-        """Execute a valid state transition."""
+        """Execute a valid state transition with token tracking."""
         old_step = self._current_step
+        now = time.time()
 
-        # Mark current step as completed
-        self._completed_steps.add(old_step)
-        self._step_history.append((old_step, time.time()))
+        # Update old token
+        if old_step in self._tokens:
+            old_token = self._tokens[old_step]
+            old_token.exit_time = now
+            old_token.status = "COMPLETED"
+            
+            # Check short duration anomaly
+            step_info = self.protocol.get_step(old_step)
+            if step_info:
+                min_sec, _ = step_info.expected_duration_range
+                duration = now - old_token.entry_time
+                if duration < min_sec:
+                    warn_event = FSMEvent(
+                        event_type=EventType.DURATION_ANOMALY,
+                        step_id=old_step,
+                        message=f"Step '{step_info.name}' completed unusually fast ({duration:.1f}s)",
+                        details={"expected_min": min_sec, "actual": duration}
+                    )
+                    self._emit_event(warn_event)
 
-        # Transition
+        # Create new token
+        self._tokens[target_step] = Token(step_id=target_step, entry_time=now)
         self._current_step = target_step
-        self._step_start_time = time.time()
         self._candidate_step = None
         self._candidate_count = 0
 
         # Determine event type
         if target_step == "EXPERIMENT_COMPLETE":
             self._experiment_complete = True
-            self._completed_steps.add(target_step)
             event = FSMEvent(
                 event_type=EventType.EXPERIMENT_COMPLETE,
                 step_id=target_step,
                 message="Experiment completed successfully! All steps done.",
                 confidence=confidence,
                 details={
-                    "total_steps": len(self._step_history),
-                    "completed": list(self._completed_steps)
+                    "total_steps": len(self._tokens),
+                    "completed": list(self.completed_steps)
                 }
             )
         elif old_step == "IDLE":
@@ -221,7 +298,7 @@ class ExperimentFSM:
 
         self._emit_event(event)
 
-        # Also emit next-step suggestion
+        # Emit ranked next-step suggestion
         self._suggest_next_step()
 
         return event
@@ -229,12 +306,7 @@ class ExperimentFSM:
     def _classify_error(self, attempted_step: str) -> EventType:
         """
         Classify an invalid transition as skipped or out-of-sequence.
-        
-        - SKIPPED: if the attempted step is reachable from current step
-          by skipping one or more intermediate steps
-        - OUT_OF_SEQUENCE: if the attempted step is not in the forward path at all
         """
-        # Check if attempted step is "ahead" in the protocol
         valid_next = self.protocol.get_valid_next_steps(self._current_step)
 
         # BFS to see if we can reach the attempted step
@@ -277,19 +349,25 @@ class ExperimentFSM:
             )
 
     def _suggest_next_step(self):
-        """Emit a next-step suggestion event."""
+        """Emit a ranked next-step suggestion event."""
         valid_next = self.protocol.get_valid_next_steps(self._current_step)
         if valid_next:
-            # Suggest the first valid next step
-            next_step = valid_next[0]
-            step_info = self.protocol.get_step(next_step)
-            step_name = step_info.name if step_info else next_step
+            # Rank suggestions by priority (lower number = higher priority)
+            ranked = sorted(
+                valid_next, 
+                key=lambda s: self.protocol.get_step(s).priority if self.protocol.get_step(s) else 99
+            )
+            
+            top_step = ranked[0]
+            step_info = self.protocol.get_step(top_step)
+            step_name = step_info.name if step_info else top_step
+            desc = step_info.description if step_info else ""
 
             event = FSMEvent(
                 event_type=EventType.NEXT_STEP_SUGGESTION,
-                step_id=next_step,
-                message=f"Next step: {step_name}",
-                details={"all_valid_next": valid_next}
+                step_id=top_step,
+                message=f"Next step: {step_name} - {desc}",
+                details={"ranked_suggestions": ranked}
             )
             self._emit_event(event)
 
@@ -307,18 +385,20 @@ class ExperimentFSM:
 
     def force_transition(self, step_id: str):
         """Force a transition (for manual override / testing)."""
-        self._completed_steps.add(self._current_step)
-        self._step_history.append((self._current_step, time.time()))
+        now = time.time()
+        if self._current_step in self._tokens:
+            self._tokens[self._current_step].exit_time = now
+            self._tokens[self._current_step].status = "COMPLETED"
+            
+        self._tokens[step_id] = Token(step_id=step_id, entry_time=now)
         self._current_step = step_id
-        self._step_start_time = time.time()
         logger.info(f"Forced transition to: {step_id}")
 
     def reset(self):
         """Reset the FSM to initial state."""
         self._current_step = "IDLE"
-        self._completed_steps.clear()
-        self._step_history.clear()
-        self._step_start_time = time.time()
+        self._tokens.clear()
+        self._tokens["IDLE"] = Token(step_id="IDLE", entry_time=time.time())
         self._experiment_started = False
         self._experiment_complete = False
         self._candidate_step = None
@@ -333,11 +413,11 @@ class ExperimentFSM:
 
     @property
     def completed_steps(self) -> Set[str]:
-        return self._completed_steps.copy()
+        return {s for s, t in self._tokens.items() if t.status == "COMPLETED"}
 
     @property
     def step_history(self) -> List[tuple]:
-        return list(self._step_history)
+        return [(t.step_id, t.entry_time) for t in sorted(self._tokens.values(), key=lambda x: x.entry_time)]
 
     @property
     def is_complete(self) -> bool:
@@ -350,14 +430,16 @@ class ExperimentFSM:
     @property
     def current_step_duration(self) -> float:
         """Seconds spent in the current step."""
-        return time.time() - self._step_start_time
+        if self._current_step in self._tokens:
+            return time.time() - self._tokens[self._current_step].entry_time
+        return 0.0
 
     @property
     def progress_fraction(self) -> float:
         """Completion progress as a fraction (0.0 to 1.0)."""
         total = self.protocol.actionable_steps
         done = len([
-            s for s in self._completed_steps
+            s for s in self.completed_steps
             if s not in ("IDLE", "EXPERIMENT_COMPLETE")
         ])
         return min(done / total, 1.0) if total > 0 else 0.0
@@ -365,10 +447,3 @@ class ExperimentFSM:
     def get_valid_transitions(self) -> List[str]:
         """Get valid transitions from current step."""
         return self.protocol.get_valid_next_steps(self._current_step)
-
-    def get_graph_dot(self) -> str:
-        """Get DOT representation of the FSM with current state highlighted."""
-        return self.protocol.to_dot(
-            current_step=self._current_step,
-            completed_steps=self._completed_steps
-        )

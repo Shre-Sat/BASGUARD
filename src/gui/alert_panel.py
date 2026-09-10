@@ -1,18 +1,18 @@
 """
 GUI Layer — Alert Panel
 ========================
-Color-coded alert history with severity indicators,
-timestamps, and acknowledgement controls.
+Command-center style alert history with color-coded severity,
+timestamps, and clear indicators.
 """
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
     QFrame, QPushButton, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from .styles import COLORS, get_alert_style
+from .styles import COLORS
 
 import time
 import logging
@@ -23,10 +23,10 @@ class AlertItem(QFrame):
     """A single alert entry in the alert panel."""
 
     SEVERITY_CONFIG = {
-        "critical": {"icon": "[C]", "color": COLORS["accent_red"], "label": "CRITICAL"},
-        "warning":  {"icon": "[W]", "color": COLORS["accent_yellow"], "label": "WARNING"},
+        "critical": {"icon": "[C]", "color": COLORS["accent_red"], "label": "CRIT"},
+        "warning":  {"icon": "[W]", "color": COLORS["accent_yellow"], "label": "WARN"},
         "info":     {"icon": "[I]", "color": COLORS["accent_green"], "label": "INFO"},
-        "suggestion": {"icon": "[S]", "color": COLORS["accent_blue"], "label": "SUGGEST"},
+        "suggestion": {"icon": "[S]", "color": COLORS["accent_blue"], "label": "SUGG"},
     }
 
     def __init__(self, severity: str, message: str, timestamp: float = None, parent=None):
@@ -34,72 +34,66 @@ class AlertItem(QFrame):
         self.severity = severity
         self.message = message
         self.timestamp = timestamp or time.time()
-        self._acknowledged = False
         self._setup_ui()
 
     def _setup_ui(self):
         config = self.SEVERITY_CONFIG.get(self.severity, self.SEVERITY_CONFIG["info"])
 
+        # Raw telemetry aesthetic: transparent bg, sharp bottom border only
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_card']};
-                border-left: 3px solid {config['color']};
-                border-radius: 4px;
-                padding: 4px;
-                margin: 2px 0;
+                background-color: transparent;
+                border: none;
+                border-bottom: 1px solid {COLORS['border_subtle']};
+                margin: 0;
+                padding: 4px 0;
             }}
         """)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 6, 8, 6)
-        layout.setSpacing(8)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
 
-        # Severity icon
-        icon_label = QLabel(config["icon"])
-        icon_label.setFont(QFont("JetBrains Mono", 11, QFont.Weight.Bold))
-        icon_label.setStyleSheet(f"color: {config['color']}; background: transparent;")
-        layout.addWidget(icon_label)
-
-        # Content area
-        content_layout = QVBoxLayout()
-        content_layout.setSpacing(2)
-
-        # Header: severity + timestamp
+        # Header row: timestamp + severity block
         header_layout = QHBoxLayout()
-        severity_label = QLabel(config["label"])
-        severity_label.setFont(QFont("Rajdhani", 10, QFont.Weight.Bold))
-        severity_label.setStyleSheet(f"color: {config['color']}; background: transparent;")
-        header_layout.addWidget(severity_label)
-
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        time_str = time.strftime("%H:%M:%S", time.localtime(self.timestamp))
+        time_label = QLabel(f"T+ {time_str}")
+        time_label.setFont(QFont("JetBrains Mono", 8))
+        time_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        header_layout.addWidget(time_label)
+        
         header_layout.addStretch()
 
-        time_str = time.strftime("%H:%M:%S", time.localtime(self.timestamp))
-        time_label = QLabel(time_str)
-        time_label.setFont(QFont("JetBrains Mono", 9))
-        time_label.setStyleSheet(f"color: {COLORS['text_dim']}; background: transparent;")
-        header_layout.addWidget(time_label)
+        severity_label = QLabel(f" {config['label']} ")
+        severity_label.setFont(QFont("JetBrains Mono", 8, QFont.Weight.Bold))
+        # Hard colored block for severity
+        severity_label.setStyleSheet(f"""
+            background-color: {config['color']};
+            color: #060A13;
+            border: none;
+            border-radius: 0px;
+        """)
+        header_layout.addWidget(severity_label)
 
-        content_layout.addLayout(header_layout)
+        layout.addLayout(header_layout)
 
-        # Message
-        msg_label = QLabel(self.message)
-        msg_label.setFont(QFont("Inter", 11))
+        # Message - strict monospace
+        msg_label = QLabel(self.message.upper())
+        msg_label.setFont(QFont("JetBrains Mono", 9))
         msg_label.setWordWrap(True)
-        msg_label.setStyleSheet(f"color: {COLORS['text_primary']}; background: transparent;")
-        content_layout.addWidget(msg_label)
-
-        layout.addLayout(content_layout, 1)
+        msg_label.setStyleSheet(f"color: {COLORS['text_secondary']}; border: none; letter-spacing: 1px;")
+        layout.addWidget(msg_label)
 
 
 class AlertPanel(QWidget):
     """
     Scrollable alert history panel with color-coded severity.
-    
     Displays alerts in reverse chronological order (newest first).
-    Supports severity: critical, warning, info, suggestion.
     """
 
-    MAX_ALERTS = 100  # Maximum alerts to keep in history
+    MAX_ALERTS = 50
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -113,23 +107,35 @@ class AlertPanel(QWidget):
 
         # Header
         header_layout = QHBoxLayout()
+        
         title = QLabel("ALERTS")
-        title.setFont(QFont("Rajdhani", 12, QFont.Weight.Bold))
-        title.setStyleSheet(f"color: {COLORS['isro_orange']}; background: transparent; letter-spacing: 1px;")
+        title.setFont(QFont("Rajdhani", 11, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLORS['isro_orange']}; background: transparent; letter-spacing: 2px;")
         header_layout.addWidget(title)
 
         header_layout.addStretch()
 
-        self._count_label = QLabel("0 alerts")
-        self._count_label.setFont(QFont("JetBrains Mono", 10))
-        self._count_label.setStyleSheet(f"color: {COLORS['text_secondary']}; background: transparent;")
+        self._count_label = QLabel("0 ALERTS")
+        self._count_label.setFont(QFont("JetBrains Mono", 9))
+        self._count_label.setStyleSheet(f"color: {COLORS['text_dim']}; background: transparent;")
         header_layout.addWidget(self._count_label)
 
-        # Clear button
-        clear_btn = QPushButton("Clear")
-        clear_btn.setFixedSize(60, 26)
-        clear_btn.setFont(QFont("Inter", 9))
+        clear_btn = QPushButton("CLR")
+        clear_btn.setFixedSize(40, 20)
+        clear_btn.setFont(QFont("JetBrains Mono", 8))
         clear_btn.clicked.connect(self.clear_alerts)
+        clear_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: 1px solid {COLORS['border_subtle']};
+                color: {COLORS['text_secondary']};
+                border-radius: 2px;
+            }}
+            QPushButton:hover {{
+                border-color: {COLORS['accent_red']};
+                color: {COLORS['accent_red']};
+            }}
+        """)
         header_layout.addWidget(clear_btn)
 
         layout.addLayout(header_layout)
@@ -137,14 +143,12 @@ class AlertPanel(QWidget):
         # Scrollable alert list
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
-        self._scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet(f"""
             QScrollArea {{
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS['bg_input']};
                 border: 1px solid {COLORS['border_subtle']};
-                border-radius: 6px;
+                border-radius: 4px;
             }}
         """)
 
@@ -155,49 +159,34 @@ class AlertPanel(QWidget):
         self._scroll_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._scroll.setWidget(self._scroll_content)
 
-        layout.addWidget(self._scroll)
+        layout.addWidget(self._scroll, 1)
 
         # No alerts placeholder
-        self._placeholder = QLabel("No alerts yet")
+        self._placeholder = QLabel("NO ALERTS")
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._placeholder.setFont(QFont("JetBrains Mono", 10))
         self._placeholder.setStyleSheet(f"""
             color: {COLORS['text_dim']};
-            font-style: italic;
             padding: 20px;
             background: transparent;
         """)
         self._scroll_layout.addWidget(self._placeholder)
 
     def add_alert(self, severity: str, message: str, timestamp: float = None):
-        """
-        Add a new alert to the panel.
-        
-        Args:
-            severity: "critical", "warning", "info", or "suggestion"
-            message: Alert message text
-            timestamp: Optional timestamp (defaults to now)
-        """
-        # Remove placeholder if present
+        """Add a new alert to the panel."""
         if self._placeholder.isVisible():
             self._placeholder.hide()
 
-        # Create alert item
         alert_item = AlertItem(severity, message, timestamp)
         self._alerts.insert(0, alert_item)
-
-        # Insert at top of scroll layout
         self._scroll_layout.insertWidget(0, alert_item)
 
-        # Trim old alerts
         while len(self._alerts) > self.MAX_ALERTS:
             old = self._alerts.pop()
             self._scroll_layout.removeWidget(old)
             old.deleteLater()
 
-        # Update count
-        self._count_label.setText(f"{len(self._alerts)} alerts")
-
-        # Scroll to top
+        self._count_label.setText(f"{len(self._alerts)} ALERTS")
         self._scroll.verticalScrollBar().setValue(0)
 
     def clear_alerts(self):
@@ -206,9 +195,5 @@ class AlertPanel(QWidget):
             self._scroll_layout.removeWidget(alert)
             alert.deleteLater()
         self._alerts.clear()
-        self._count_label.setText("0 alerts")
+        self._count_label.setText("0 ALERTS")
         self._placeholder.show()
-
-    @property
-    def alert_count(self) -> int:
-        return len(self._alerts)

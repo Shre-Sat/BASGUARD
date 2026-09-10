@@ -4,67 +4,55 @@
 **AI-Based Human Activity Recognition (HAR) for On-board BAS Experiments**
 
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
-![PyTorch CPU](https://img.shields.io/badge/PyTorch-CPU_Optimized-EE4C2C.svg)
-![YOLOv8](https://img.shields.io/badge/YOLO-v8_Nano-00FFFF.svg)
+![PyTorch GPU](https://img.shields.io/badge/PyTorch-GPU_Optimized-EE4C2C.svg)
+![YOLOv8](https://img.shields.io/badge/YOLO-v8_XLarge-00FFFF.svg)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A65A.svg)
+![GStreamer](https://img.shields.io/badge/GStreamer-Pipeline-blue.svg)
 
-BASGUARD is an end-to-end, CPU-optimized AI pipeline designed to monitor astronaut actions during on-board Biological Activity Space (BAS) experiments. It enforces strict procedural protocols, logs anomalies, and provides a professional "Mission Control" telemetry dashboard.
+BASGUARD is an end-to-end AI pipeline designed to monitor astronaut actions during on-board Biological Activity Space (BAS) experiments. It enforces strict procedural protocols using deterministic Petri-net logic, logs anomalies, and provides a professional "Mission Control" telemetry dashboard.
 
 ---
 
 ## 🎯 Features
 
-*   **Multi-Modal Perception (CPU Optimized):** 
-    *   Object Detection via `YOLOv8-nano` combined with HSV color filtering.
+*   **Multi-Modal Perception (High Accuracy):** 
+    *   Object Detection via `YOLOv8x` (X-Large) combined with HSV color filtering for precise box detection.
     *   3D Hand Tracking via `MediaPipe` to extract 21-point skeletons and detect grasp/pinch gestures.
-    *   Geometric Interaction heuristics to determine Hand-Object relationships (Touching, Grasping, Holding).
-*   **Sequence Reasoning:** A robust Finite State Machine (FSM) enforcing a strict step-by-step procedural protocol. Throws `OUT_OF_SEQUENCE` errors if steps are skipped.
-*   **ISRO Mission Control Dashboard:** Built with PyQt6 and PyQtGraph, featuring live video overlays, scrolling confidence telemetry charts, health metrics (FPS/CPU/MEM), and structured alerts.
-*   **Immutable Audit Trail:** Append-only JSON Lines logging system that computes SHA-256 hashes for tamper evidence, alongside human-readable summary reports.
-*   **Voice Alerts (TTS):** Priority-queued, non-blocking text-to-speech warnings for anomalies.
-*   **Offline Video Streaming:** Local MP4 recording via OpenCV that automatically tags anomalies in the filename.
-
----
-
-## 🏗️ Architecture
-
-The system is strictly decoupled into 8 distinct layers communicating via a unified `SceneState` object:
-
-1.  **Capture Layer** (`src/capture`): Threaded camera polling to prevent I/O blocking.
-2.  **Perception Layer** (`src/perception`): YOLOv8 objects, MediaPipe hands, and Interaction classification.
-3.  **Fusion Layer** (`src/fusion`): Merges spatial bounding boxes with hand landmarks into a unified state.
-4.  **Sequence Reasoning** (`src/sequence`): Graph-based protocol definition and FSM logic.
-5.  **Alerting Layer** (`src/alerting`): Voice synthesis queue.
-6.  **Logging Layer** (`src/logging_layer`): JSONL auditing and summary generation.
-7.  **Streaming Layer** (`src/streaming`): Frame writing to MP4.
-8.  **GUI Layer** (`src/gui`): PyQt6 main window assembling metrics, timelines, alerts, and video panels.
+*   **Sequence Reasoning (Petri-Net FSM):** A robust Finite State Machine enforcing a strict step-by-step procedural protocol. Tracks tokens, detects duration anomalies (too fast/slow), and suggests ranked next-steps.
+*   **ISRO Mission Control Dashboard:** Built with PyQt6 and PyQtGraph, featuring live video overlays, scrolling confidence telemetry charts, health metrics (FPS/CPU/MEM), and structured alerts in a dark, high-contrast aesthetic.
+*   **Voice Alerts (Piper TTS):** Priority-queued, non-blocking offline neural text-to-speech warnings for anomalies with sub-300ms latency.
+*   **GStreamer Video Pipeline:** Simultaneous RTSP streaming and splitmuxsink ring-buffer MP4 recording, with per-frame JSONL logging for precise anomaly tracking.
 
 ---
 
 ## 🚀 Setup & Installation
 
-The project is designed to run locally on a CPU without requiring bulky NVIDIA CUDA libraries.
+### 1. System Requirements
+- **OS**: Linux (Ubuntu 20.04+ recommended)
+- **GPU**: NVIDIA GPU recommended for YOLOv8x inference
+- **System Packages**: 
+  ```bash
+  # Install GStreamer and sound dependencies
+  sudo apt-get update
+  sudo apt-get install -y gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly libgstreamer1.0-dev libportaudio2
+  ```
 
-### 1. Create a Virtual Environment
+### 2. Python Environment
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-```
-
-### 2. Install PyTorch (CPU-Only)
-To prevent `pip` from downloading massive GPU libraries, install the CPU version of PyTorch first:
-```bash
-pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
-```
-
-### 3. Install Requirements
-```bash
 pip install -r requirements.txt
-# Additionally ensure you have pyqtgraph installed for the telemetry panel
-pip install pyqtgraph cloudpickle polars ultralytics-platform
 ```
 
-*(Note: On some Linux distributions, you may need system dependencies for OpenCV and TTS, e.g., `sudo apt install libgl1-mesa-glx espeak`)*
+### 3. Piper TTS Model
+The system uses Piper TTS for fast voice generation. You need to download the voice model:
+```bash
+mkdir -p data
+cd data
+wget https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-en-us-lessac-medium.tar.gz
+tar -xzf voice-en-us-lessac-medium.tar.gz
+# The ONNX model should be placed so the TTS manager can find it, or update the path in config.yaml
+```
 
 ---
 
@@ -83,9 +71,6 @@ python main.py
 *   `--no-tts`: Disable voice warnings.
 *   `--config custom.yaml`: Override the default settings defined in `config.yaml`.
 
-Once the GUI opens, click **START** in the top right to initialize the pipeline. 
-*The first time you run this, Ultralytics will automatically download the 6MB YOLOv8-nano weights.*
-
 ### Experiment Protocol:
 To successfully complete the sequence without triggering an anomaly alert, follow this protocol:
 1. Wait in **IDLE** state.
@@ -102,17 +87,17 @@ To successfully complete the sequence without triggering an anomaly alert, follo
 
 ```
 SIH/
-├── config.yaml             # Global configuration
+├── config.yaml             # Global configuration (YOLO, TTS, Streaming)
 ├── main.py                 # Application entry point
 ├── requirements.txt        # Core dependencies
 ├── src/
 │   ├── capture/            # Webcam threading
 │   ├── perception/         # YOLO, MediaPipe, Heuristics
 │   ├── fusion/             # SceneState data structures
-│   ├── sequence/           # Finite State Machine rules
-│   ├── alerting/           # Text-To-Speech engine
+│   ├── sequence/           # Petri-net FSM & Rules
+│   ├── alerting/           # Piper TTS engine
 │   ├── logging_layer/      # JSONL + Hash integrity
-│   ├── streaming/          # Local MP4 recording
+│   ├── streaming/          # GStreamer pipelines
 │   └── gui/                # PyQt6 + PyQtGraph panels
 ├── data/
 │   ├── models/             # YOLO weights

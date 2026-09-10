@@ -1,27 +1,25 @@
 """
 GUI Layer — Main Window
 ========================
-ISRO Mission Control styled main window that assembles all panels
-into a unified monitoring dashboard.
+ISRO Mission Control styled main window with professional
+command center layout. Three-column design with telemetry.
 
 Layout:
-┌──────────────────────────────────────────────────────────────────┐
-│  🇮🇳  ISRO BAS EXPERIMENT MONITOR              [Start] [Reset]  │
-├────────────────────────────────┬─────────────────────────────────┤
-│                                │  EXPERIMENT PROGRESS            │
-│   LIVE VIDEO FEED              │  [1]✓ ─── [2]● ─── [3] ───    │
-│   (annotated with detections,  ├─────────────────────────────────┤
-│    hand landmarks,             │  FSM STATE DIAGRAM              │
-│    interaction states)         │  ┌────┐   ┌────┐               │
-│                                │  │IDLE│──▶│OPEN│──▶ ...        │
-│                                │  └────┘   └────┘               │
-├────────────────────────────────┼─────────────────────────────────┤
-│  🔔 ALERTS                     │  📋 EVENT LOG                   │
-│  ⚠ OUT_OF_SEQUENCE 11:30      │  [00:15] ✓ OPEN_OUTER_BOX      │
-│  ✓ STEP_COMPLETED  11:29      │  [00:22] ✓ IDENTIFY_RED_BOX    │
-├────────────────────────────────┴─────────────────────────────────┤
-│  ● REC 02:15 │ FPS: 24 │ CPU: 45% │ MEM: 2.1G │ Pipeline: ACT │
-└──────────────────────────────────────────────────────────────────┘
++================================================================+
+|  ISRO  |  BASGUARD - BAS EXPERIMENT MONITOR  |  START  RESET   |
++================================================================+
+|                    |  EXPERIMENT PROGRESS      | TELEMETRY      |
+|   LIVE VIDEO       |  [1]--[2]--[3]--[4]--[5] | Confidence     |
+|   FEED             |                           | Graph          |
+|                    +---------------------------+                |
+|                    |  ALERTS                   |                |
+|                    |  [C] OUT_OF_SEQ  11:30    |                |
++--------------------+---------------------------+----------------+
+|  EVENT LOG                                                      |
+|  [00:15] [OK] OPEN_OUTER_BOX — Step completed                  |
++=================================================================+
+| REC 02:15  FPS: 24  CPU: 45%  MEM: 2.1G   Pipeline: ACTIVE    |
++=================================================================+
 """
 
 import sys
@@ -31,9 +29,9 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QFrame, QApplication, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QAction
+from PyQt6.QtGui import QFont, QPainter, QColor, QLinearGradient
 
-from .styles import COLORS, FONTS, get_main_stylesheet
+from .styles import COLORS, FONTS, get_main_stylesheet, get_panel_title_style
 from .video_panel import VideoPanel
 from .timeline_panel import TimelinePanel
 from .alert_panel import AlertPanel
@@ -45,12 +43,27 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class SectionFrame(QFrame):
+    """A styled panel frame with optional title bar accent."""
+
+    def __init__(self, accent_color: str = None, parent=None):
+        super().__init__(parent)
+        border = accent_color or COLORS["border_subtle"]
+        self.setStyleSheet(f"""
+            SectionFrame {{
+                background-color: {COLORS["bg_panel"]};
+                border: 1px solid {border};
+                border-radius: 4px;
+            }}
+        """)
+
+
 class MainWindow(QMainWindow):
     """
     ISRO Mission Control — Main Application Window.
-    
-    Assembles all dashboard panels and manages the processing loop
-    that connects the camera → perception → reasoning → GUI pipeline.
+
+    Professional three-column dashboard that assembles all panels
+    into a unified monitoring interface.
     """
 
     # Signals for thread-safe GUI updates
@@ -68,10 +81,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(
             self.config.get("gui", {}).get(
                 "window_title",
-                "ISRO BAS Experiment Monitor — HAR System"
+                "BASGUARD — BAS Experiment Monitor"
             )
         )
-        self.setMinimumSize(1280, 800)
+        self.setMinimumSize(1366, 800)
 
         # Apply global stylesheet
         self.setStyleSheet(get_main_stylesheet())
@@ -100,64 +113,75 @@ class MainWindow(QMainWindow):
         header = self._build_header()
         main_layout.addWidget(header)
 
-        # ── Main Content Area ───────────────────────────────────
-        content_splitter = QSplitter(Qt.Orientation.Vertical)
-        content_splitter.setHandleWidth(3)
+        # ── Main Content ────────────────────────────────────────
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(6, 6, 6, 4)
+        content_layout.setSpacing(4)
 
-        # Top section: Video + Timeline/FSM
+        # Top row: Video | (Timeline + Alerts) | Telemetry
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
-        top_splitter.setHandleWidth(3)
+        top_splitter.setHandleWidth(2)
 
-        # Left: Video Feed
-        video_container = QWidget()
-        video_layout = QVBoxLayout(video_container)
-        video_layout.setContentsMargins(8, 8, 4, 4)
+        # ── LEFT: Video Feed ────────────────────────────────────
+        video_frame = SectionFrame()
+        video_inner = QVBoxLayout(video_frame)
+        video_inner.setContentsMargins(4, 4, 4, 4)
+        video_inner.setSpacing(2)
+
+        video_title = QLabel("LIVE FEED")
+        video_title.setFont(QFont("Rajdhani", 11, QFont.Weight.Bold))
+        video_title.setStyleSheet(get_panel_title_style())
+        video_inner.addWidget(video_title)
+
         self.video_panel = VideoPanel()
-        video_layout.addWidget(self.video_panel)
-        top_splitter.addWidget(video_container)
+        video_inner.addWidget(self.video_panel, 1)
+        top_splitter.addWidget(video_frame)
 
-        # Right: Timeline + FSM
-        right_container = QWidget()
-        right_layout = QVBoxLayout(right_container)
-        right_layout.setContentsMargins(4, 8, 8, 4)
-        right_layout.setSpacing(8)
+        # ── CENTER: Timeline + Alerts ───────────────────────────
+        center_widget = QWidget()
+        center_layout = QVBoxLayout(center_widget)
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(4)
 
+        # Timeline section
+        timeline_frame = SectionFrame()
+        timeline_inner = QVBoxLayout(timeline_frame)
+        timeline_inner.setContentsMargins(4, 4, 4, 4)
         self.timeline_panel = TimelinePanel()
-        right_layout.addWidget(self.timeline_panel)
+        timeline_inner.addWidget(self.timeline_panel)
+        center_layout.addWidget(timeline_frame)
 
-        self.metrics_panel = MetricsGraphPanel()
-        right_layout.addWidget(self.metrics_panel, 1)
-
-        top_splitter.addWidget(right_container)
-        top_splitter.setSizes([600, 400])
-
-        content_splitter.addWidget(top_splitter)
-
-        # Bottom section: Alerts + Log
-        bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
-        bottom_splitter.setHandleWidth(3)
-
-        # Left: Alert Panel
-        alert_container = QWidget()
-        alert_layout = QVBoxLayout(alert_container)
-        alert_layout.setContentsMargins(8, 4, 4, 4)
+        # Alert section
+        alert_frame = SectionFrame(accent_color=COLORS["accent_red"])
+        alert_inner = QVBoxLayout(alert_frame)
+        alert_inner.setContentsMargins(4, 4, 4, 4)
         self.alert_panel = AlertPanel()
-        alert_layout.addWidget(self.alert_panel)
-        bottom_splitter.addWidget(alert_container)
+        alert_inner.addWidget(self.alert_panel)
+        center_layout.addWidget(alert_frame, 1)
 
-        # Right: Log Panel
-        log_container = QWidget()
-        log_layout = QVBoxLayout(log_container)
-        log_layout.setContentsMargins(4, 4, 8, 4)
+        top_splitter.addWidget(center_widget)
+
+        # ── RIGHT: Telemetry graph ──────────────────────────────
+        telemetry_frame = SectionFrame(accent_color=COLORS["accent_cyan"])
+        telemetry_inner = QVBoxLayout(telemetry_frame)
+        telemetry_inner.setContentsMargins(4, 4, 4, 4)
+        self.metrics_panel = MetricsGraphPanel()
+        telemetry_inner.addWidget(self.metrics_panel)
+        top_splitter.addWidget(telemetry_frame)
+
+        top_splitter.setSizes([520, 440, 340])
+        content_layout.addWidget(top_splitter, 1)
+
+        # Bottom row: Log Panel (full-width)
+        log_frame = SectionFrame()
+        log_inner = QVBoxLayout(log_frame)
+        log_inner.setContentsMargins(4, 4, 4, 4)
         self.log_panel = LogPanel()
-        log_layout.addWidget(self.log_panel)
-        bottom_splitter.addWidget(log_container)
+        log_inner.addWidget(self.log_panel)
+        content_layout.addWidget(log_frame, 0)
 
-        bottom_splitter.setSizes([400, 600])
-        content_splitter.addWidget(bottom_splitter)
-        content_splitter.setSizes([500, 300])
-
-        main_layout.addWidget(content_splitter, 1)
+        main_layout.addWidget(content, 1)
 
         # ── Health Panel (Bottom Bar) ───────────────────────────
         self.health_panel = HealthPanel()
@@ -166,56 +190,76 @@ class MainWindow(QMainWindow):
     def _build_header(self) -> QFrame:
         """Build the ISRO-branded header bar."""
         header = QFrame()
-        header.setFixedHeight(56)
+        header.setFixedHeight(52)
         header.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS['bg_header']};
                 border-bottom: 2px solid {COLORS['isro_orange']};
             }}
         """)
 
         layout = QHBoxLayout(header)
-        layout.setContentsMargins(16, 0, 16, 0)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 0, 12, 0)
+        layout.setSpacing(8)
 
-        # ISRO Logo / Flag
-        flag_label = QLabel("ISRO")
-        flag_label.setFont(QFont("Rajdhani", 16, QFont.Weight.Bold))
-        flag_label.setStyleSheet(f"color: {COLORS['isro_orange']}; background: transparent;")
-        layout.addWidget(flag_label)
+        # ISRO wordmark
+        isro_label = QLabel("ISRO")
+        isro_label.setFont(QFont("Rajdhani", 18, QFont.Weight.Bold))
+        isro_label.setStyleSheet(f"color: {COLORS['isro_orange']}; background: transparent;")
+        layout.addWidget(isro_label)
+
+        # Separator dot
+        dot = QLabel("//")
+        dot.setFont(QFont("JetBrains Mono", 12))
+        dot.setStyleSheet(f"color: {COLORS['text_dim']}; background: transparent;")
+        layout.addWidget(dot)
 
         # Title
-        title = QLabel("BAS EXPERIMENT MONITOR")
+        title = QLabel("BASGUARD")
         title.setFont(QFont("Rajdhani", 18, QFont.Weight.Bold))
         title.setStyleSheet(f"""
             color: {COLORS['text_primary']};
             background: transparent;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
         """)
         layout.addWidget(title)
 
         # Subtitle
-        subtitle = QLabel("AI-Based Human Activity Recognition System")
+        subtitle = QLabel("BAS Experiment Monitor")
         subtitle.setFont(QFont("Inter", 10))
-        subtitle.setStyleSheet(f"color: {COLORS['text_secondary']}; background: transparent;")
+        subtitle.setStyleSheet(f"color: {COLORS['text_dim']}; background: transparent;")
         layout.addWidget(subtitle)
 
         layout.addStretch()
 
+        # Mission clock
+        self._clock_label = QLabel("T+ 00:00:00")
+        self._clock_label.setFont(QFont("JetBrains Mono", 13, QFont.Weight.Bold))
+        self._clock_label.setStyleSheet(f"color: {COLORS['accent_cyan']}; background: transparent;")
+        layout.addWidget(self._clock_label)
+
+        self._mission_start = None
+        self._clock_timer = QTimer(self)
+        self._clock_timer.timeout.connect(self._update_clock)
+        self._clock_timer.start(1000)
+
+        layout.addSpacing(16)
+
         # Action buttons
         self._start_btn = QPushButton("START")
         self._start_btn.setFont(QFont("Rajdhani", 12, QFont.Weight.Bold))
-        self._start_btn.setFixedSize(120, 36)
-        self._start_btn.setObjectName("primaryButton")
+        self._start_btn.setFixedSize(110, 34)
+        self._start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._start_btn.clicked.connect(self._on_start_clicked)
         self._start_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLORS['accent_green']};
-                color: white;
+                color: #0a0e1a;
                 border: none;
-                border-radius: 6px;
+                border-radius: 4px;
                 font-size: 13px;
                 font-weight: bold;
+                letter-spacing: 2px;
             }}
             QPushButton:hover {{
                 background-color: #00C853;
@@ -224,12 +268,44 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._start_btn)
 
         self._reset_btn = QPushButton("RESET")
-        self._reset_btn.setFont(QFont("Rajdhani", 12, QFont.Weight.Bold))
-        self._reset_btn.setFixedSize(100, 36)
+        self._reset_btn.setFont(QFont("Rajdhani", 11, QFont.Weight.Bold))
+        self._reset_btn.setFixedSize(90, 34)
+        self._reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._reset_btn.clicked.connect(self._on_reset_clicked)
+        self._reset_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {COLORS['text_secondary']};
+                border: 1px solid {COLORS['border_subtle']};
+                border-radius: 4px;
+                letter-spacing: 1px;
+            }}
+            QPushButton:hover {{
+                border-color: {COLORS['accent_red']};
+                color: {COLORS['accent_red']};
+            }}
+        """)
         layout.addWidget(self._reset_btn)
 
         return header
+
+    # ── Clock ───────────────────────────────────────────────────
+
+    def _update_clock(self):
+        """Update mission elapsed time clock."""
+        if self._mission_start and self._pipeline_running:
+            elapsed = time.time() - self._mission_start
+            h = int(elapsed // 3600)
+            m = int((elapsed % 3600) // 60)
+            s = int(elapsed % 60)
+            self._clock_label.setText(f"T+ {h:02d}:{m:02d}:{s:02d}")
+            self._clock_label.setStyleSheet(
+                f"color: {COLORS['accent_green']}; background: transparent;"
+            )
+        elif not self._pipeline_running:
+            self._clock_label.setStyleSheet(
+                f"color: {COLORS['text_dim']}; background: transparent;"
+            )
 
     # ── Signal handlers (thread-safe GUI updates) ───────────────
 
@@ -267,11 +343,12 @@ class MainWindow(QMainWindow):
             self._start_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {COLORS['accent_green']};
-                    color: white;
+                    color: #0a0e1a;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
+                    letter-spacing: 2px;
                 }}
                 QPushButton:hover {{
                     background-color: #00C853;
@@ -281,15 +358,17 @@ class MainWindow(QMainWindow):
             logger.info("Pipeline stopped by user")
         else:
             self._pipeline_running = True
+            self._mission_start = time.time()
             self._start_btn.setText("STOP")
             self._start_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {COLORS['accent_red']};
                     color: white;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
+                    letter-spacing: 2px;
                 }}
                 QPushButton:hover {{
                     background-color: #D50000;
@@ -301,15 +380,18 @@ class MainWindow(QMainWindow):
     def _on_reset_clicked(self):
         """Handle Reset button click."""
         self._pipeline_running = False
+        self._mission_start = None
+        self._clock_label.setText("T+ 00:00:00")
         self._start_btn.setText("START")
         self._start_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLORS['accent_green']};
-                color: white;
+                color: #0a0e1a;
                 border: none;
-                border-radius: 6px;
+                border-radius: 4px;
                 font-size: 13px;
                 font-weight: bold;
+                letter-spacing: 2px;
             }}
             QPushButton:hover {{
                 background-color: #00C853;

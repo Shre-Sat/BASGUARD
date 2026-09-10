@@ -88,13 +88,21 @@ class ObjectDetector:
         return detections
 
     def _run_yolo(self, frame: np.ndarray) -> List[Detection]:
-        """Run YOLOv8 inference and return detections."""
+        """
+        Run YOLOv8 inference — only detect 'person' class.
+        
+        Box detection (red, yellow, outer) is handled entirely by
+        the HSV color pipeline which is more reliable for our
+        specific colored boxes than generic COCO classes.
+        """
         detections = []
         try:
+            # Only detect person class (COCO class id 0)
             results = self._model(
                 frame,
                 conf=self.confidence_threshold,
                 iou=self.iou_threshold,
+                classes=[0],  # person only
                 verbose=False
             )
 
@@ -104,40 +112,13 @@ class ObjectDetector:
                 for box in r.boxes:
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                     conf = float(box.conf[0])
-                    cls_id = int(box.cls[0])
-                    cls_name = self._model.names[cls_id]
 
-                    # We care about certain COCO classes that might be our boxes
-                    # Classes: "suitcase", "handbag", "backpack", "book",
-                    # "cell phone" etc. could match box-like objects
-                    # Also detect "person" for astronaut tracking
-                    relevant_classes = {
-                        "suitcase", "handbag", "backpack", "book",
-                        "box", "cell phone", "laptop", "tvmonitor",
-                        "bottle", "cup", "bowl", "person"
-                    }
-
-                    if cls_name in relevant_classes or conf > 0.7:
-                        # Analyze the color of the detected region
-                        roi = frame[max(0, y1):y2, max(0, x1):x2]
-                        color_label = self._classify_color(roi) if roi.size > 0 else ""
-
-                        # Reclassify based on color
-                        if color_label == "red":
-                            final_name = "red_box"
-                        elif color_label == "yellow":
-                            final_name = "yellow_box"
-                        elif cls_name == "person":
-                            final_name = "person"
-                        else:
-                            final_name = cls_name
-
-                        detections.append(Detection(
-                            class_name=final_name,
-                            bbox=(x1, y1, x2, y2),
-                            confidence=conf,
-                            color_label=color_label
-                        ))
+                    detections.append(Detection(
+                        class_name="person",
+                        bbox=(x1, y1, x2, y2),
+                        confidence=conf,
+                        color_label=""
+                    ))
         except Exception as e:
             logger.error(f"YOLO inference error: {e}")
 

@@ -2,7 +2,7 @@
 GUI Layer — Live Annotated Video Panel
 ========================================
 Displays the camera feed with overlaid bounding boxes,
-hand landmarks, and interaction state labels.
+hand landmarks, interaction state labels, and HUD elements.
 """
 
 import cv2
@@ -10,7 +10,7 @@ import numpy as np
 import time
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QImage, QPixmap, QFont, QPainter, QColor
+from PyQt6.QtGui import QImage, QPixmap, QFont
 
 from .styles import COLORS
 
@@ -21,22 +21,22 @@ logger = logging.getLogger(__name__)
 class VideoPanel(QWidget):
     """
     Live video feed panel with perception overlay annotations.
-    
+
     Displays:
     - Camera frames with bounding boxes for detected objects
     - Hand landmark skeletons
     - Interaction state labels
-    - FPS counter
+    - HUD-style step overlay and FPS counter
     """
 
-    frame_processed = pyqtSignal()  # Emitted after each frame is displayed
+    frame_processed = pyqtSignal()
 
-    # Colors for different object types
+    # Colors for different object types (BGR for OpenCV)
     OBJECT_COLORS = {
-        "red_box":    (0, 0, 255),     # Red (BGR)
-        "yellow_box": (0, 255, 255),   # Yellow (BGR)
-        "outer_box":  (139, 90, 43),   # Brown (BGR)
-        "person":     (255, 165, 0),   # Orange (BGR)
+        "red_box":    (0, 0, 255),
+        "yellow_box": (0, 255, 255),
+        "outer_box":  (139, 90, 43),
+        "person":     (255, 165, 0),
     }
 
     INTERACTION_COLORS = {
@@ -62,40 +62,41 @@ class VideoPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Video display label
-        self._video_label = QLabel("Waiting for camera feed...")
+        # Video display
+        self._video_label = QLabel("AWAITING FEED")
         self._video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._video_label.setMinimumSize(640, 360)
         self._video_label.setStyleSheet(f"""
-            background-color: {COLORS['bg_secondary']};
-            color: {COLORS['text_secondary']};
-            font-size: 16px;
-            font-family: Rajdhani, sans-serif;
+            background-color: {COLORS['bg_input']};
+            color: {COLORS['text_dim']};
+            font-size: 14px;
+            font-family: JetBrains Mono, monospace;
+            letter-spacing: 2px;
             border: 1px solid {COLORS['border_subtle']};
-            border-radius: 8px;
+            border-radius: 4px;
         """)
-        layout.addWidget(self._video_label)
+        layout.addWidget(self._video_label, 1)
 
-        # Status bar under video
+        # Status bar
         status_layout = QHBoxLayout()
-        status_layout.setContentsMargins(4, 4, 4, 4)
+        status_layout.setContentsMargins(4, 2, 4, 2)
 
         self._fps_label = QLabel("FPS: --")
         self._fps_label.setStyleSheet(f"""
             color: {COLORS['accent_cyan']};
             font-family: JetBrains Mono, monospace;
-            font-size: 11px;
+            font-size: 10px;
             background: transparent;
         """)
         status_layout.addWidget(self._fps_label)
 
         status_layout.addStretch()
 
-        self._resolution_label = QLabel("--×--")
+        self._resolution_label = QLabel("--x--")
         self._resolution_label.setStyleSheet(f"""
-            color: {COLORS['text_secondary']};
+            color: {COLORS['text_dim']};
             font-family: JetBrains Mono, monospace;
-            font-size: 11px;
+            font-size: 10px;
             background: transparent;
         """)
         status_layout.addWidget(self._resolution_label)
@@ -112,7 +113,7 @@ class VideoPanel(QWidget):
     ):
         """
         Update the video panel with a new annotated frame.
-        
+
         Args:
             frame: Raw BGR frame from camera
             detections: List of Detection objects
@@ -124,6 +125,9 @@ class VideoPanel(QWidget):
             return
 
         annotated = frame.copy()
+
+        # Draw HUD border frame
+        annotated = self._draw_hud_frame(annotated)
 
         # Draw detections
         if detections:
@@ -145,13 +149,35 @@ class VideoPanel(QWidget):
         self._update_fps()
         cv2.putText(
             annotated, f"FPS: {self._fps:.0f}",
-            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-            (0, 229, 255), 2
+            (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+            (0, 229, 255), 1, cv2.LINE_AA
         )
 
-        # Convert to QPixmap and display
+        # Convert and display
         self._display_frame(annotated)
         self._current_frame = annotated
+
+    def _draw_hud_frame(self, frame: np.ndarray) -> np.ndarray:
+        """Draw subtle HUD corner brackets on the video frame."""
+        h, w = frame.shape[:2]
+        color = (0, 107, 255)  # ISRO orange in BGR
+        corner = 40
+        thickness = 1
+
+        # Top-left
+        cv2.line(frame, (0, 0), (corner, 0), color, thickness)
+        cv2.line(frame, (0, 0), (0, corner), color, thickness)
+        # Top-right
+        cv2.line(frame, (w - 1, 0), (w - 1 - corner, 0), color, thickness)
+        cv2.line(frame, (w - 1, 0), (w - 1, corner), color, thickness)
+        # Bottom-left
+        cv2.line(frame, (0, h - 1), (corner, h - 1), color, thickness)
+        cv2.line(frame, (0, h - 1), (0, h - 1 - corner), color, thickness)
+        # Bottom-right
+        cv2.line(frame, (w - 1, h - 1), (w - 1 - corner, h - 1), color, thickness)
+        cv2.line(frame, (w - 1, h - 1), (w - 1, h - 1 - corner), color, thickness)
+
+        return frame
 
     def _draw_detections(self, frame: np.ndarray, detections) -> np.ndarray:
         """Draw bounding boxes and labels for detected objects."""
@@ -159,7 +185,7 @@ class VideoPanel(QWidget):
             x1, y1, x2, y2 = det.bbox
             color = self.OBJECT_COLORS.get(det.class_name, (0, 255, 0))
 
-            # Draw bounding box with slight transparency effect
+            # Draw bounding box
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
             # Draw corner accents (mission-control style)
@@ -192,7 +218,8 @@ class VideoPanel(QWidget):
                 frame, label,
                 (x1 + 3, max(0, y1 - 3)),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                (0, 0, 0) if sum(color)>400 else (255, 255, 255), 1
+                (0, 0, 0) if sum(color) > 400 else (255, 255, 255),
+                1, cv2.LINE_AA
             )
 
         return frame
@@ -201,20 +228,18 @@ class VideoPanel(QWidget):
         """Draw hand landmarks with connections."""
         from src.perception.hand_tracker import LandmarkIdx
 
-        # MediaPipe hand connections
         CONNECTIONS = [
-            (0, 1), (1, 2), (2, 3), (3, 4),    # Thumb
-            (0, 5), (5, 6), (6, 7), (7, 8),    # Index
-            (5, 9), (9, 10), (10, 11), (11, 12),  # Middle
-            (9, 13), (13, 14), (14, 15), (15, 16),  # Ring
-            (13, 17), (17, 18), (18, 19), (19, 20),  # Pinky
-            (0, 17)                              # Palm
+            (0, 1), (1, 2), (2, 3), (3, 4),
+            (0, 5), (5, 6), (6, 7), (7, 8),
+            (5, 9), (9, 10), (10, 11), (11, 12),
+            (9, 13), (13, 14), (14, 15), (15, 16),
+            (13, 17), (17, 18), (18, 19), (19, 20),
+            (0, 17)
         ]
 
         for hand in hand_states:
             color = (0, 255, 128) if hand.handedness == "Right" else (255, 128, 0)
 
-            # Draw connections
             for start_idx, end_idx in CONNECTIONS:
                 if start_idx < len(hand.landmarks) and end_idx < len(hand.landmarks):
                     start = hand.landmarks[start_idx]
@@ -223,32 +248,28 @@ class VideoPanel(QWidget):
                         frame,
                         (start.pixel_x, start.pixel_y),
                         (end.pixel_x, end.pixel_y),
-                        color, 2
+                        color, 2, cv2.LINE_AA
                     )
 
-            # Draw landmark points
             for lm in hand.landmarks:
                 cv2.circle(frame, (lm.pixel_x, lm.pixel_y), 3, color, -1)
 
-            # Draw palm center
-            cv2.circle(frame, hand.palm_center, 6, (0, 255, 255), -1)
-            cv2.circle(frame, hand.palm_center, 8, (0, 255, 255), 1)
+            cv2.circle(frame, hand.palm_center, 5, (0, 255, 255), -1)
+            cv2.circle(frame, hand.palm_center, 7, (0, 255, 255), 1)
 
-            # Hand state label
             state_text = hand.handedness
             if hand.is_grasping:
                 state_text += ":GRASP"
             elif hand.is_pinching:
                 state_text += ":PINCH"
 
-            # Draw background for hand label
             (tw, th), _ = cv2.getTextSize(state_text, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
             hx, hy = hand.wrist[0] - 20, hand.wrist[1] - 20
             cv2.rectangle(frame, (hx - 2, hy - th - 2), (hx + tw + 2, hy + 2), (0, 0, 0), -1)
             cv2.putText(
                 frame, state_text,
                 (hx, hy),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2.LINE_AA
             )
 
         return frame
@@ -259,15 +280,12 @@ class VideoPanel(QWidget):
             state_name = interaction.state.value
             color = self.INTERACTION_COLORS.get(state_name, (128, 128, 128))
 
-            # Draw a line from hand to object if we have both
             if interaction.hand_state and interaction.object_detection:
                 hand_pos = interaction.hand_state.palm_center
                 obj_pos = interaction.object_detection.center
 
-                # Dashed-style line
-                cv2.line(frame, hand_pos, obj_pos, color, 2)
+                cv2.line(frame, hand_pos, obj_pos, color, 2, cv2.LINE_AA)
 
-                # Interaction label at midpoint
                 mid_x = (hand_pos[0] + obj_pos[0]) // 2
                 mid_y = (hand_pos[1] + obj_pos[1]) // 2
 
@@ -277,15 +295,15 @@ class VideoPanel(QWidget):
                 )
                 cv2.rectangle(
                     frame,
-                    (mid_x - tw//2 - 2, mid_y - th//2 - 2),
-                    (mid_x + tw//2 + 2, mid_y + th//2 + 2),
+                    (mid_x - tw // 2 - 2, mid_y - th // 2 - 2),
+                    (mid_x + tw // 2 + 2, mid_y + th // 2 + 2),
                     (0, 0, 0), -1
                 )
                 cv2.putText(
                     frame, label,
-                    (mid_x - tw//2, mid_y + th//2),
+                    (mid_x - tw // 2, mid_y + th // 2),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                    color, 1
+                    color, 1, cv2.LINE_AA
                 )
 
         return frame
@@ -295,24 +313,36 @@ class VideoPanel(QWidget):
         h, w = frame.shape[:2]
         label = f"STEP: {current_step}"
         (tw, th), _ = cv2.getTextSize(
-            label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+            label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1
         )
 
-        # Background box
-        pad = 8
+        pad = 6
         x1 = w - tw - pad * 3
-        y1 = 10
+        y1 = 8
+
+        # Semi-transparent dark background
+        overlay = frame.copy()
+        cv2.rectangle(
+            overlay,
+            (x1, y1),
+            (w - 8, y1 + th + pad * 2),
+            (0, 0, 0), -1
+        )
+        cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+
+        # Orange accent bar
         cv2.rectangle(
             frame,
             (x1, y1),
-            (w - 10, y1 + th + pad * 2),
+            (x1 + 3, y1 + th + pad * 2),
             (0, 107, 255), -1  # ISRO orange BGR
         )
+
         cv2.putText(
             frame, label,
-            (x1 + pad, y1 + th + pad),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-            (255, 255, 255), 2
+            (x1 + pad + 2, y1 + th + pad),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+            (255, 255, 255), 1, cv2.LINE_AA
         )
 
         return frame
@@ -329,7 +359,6 @@ class VideoPanel(QWidget):
         )
 
         pixmap = QPixmap.fromImage(qt_image)
-        # Scale to fit the label while keeping aspect ratio
         scaled = pixmap.scaled(
             self._video_label.size(),
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -337,8 +366,7 @@ class VideoPanel(QWidget):
         )
         self._video_label.setPixmap(scaled)
 
-        # Update resolution label
-        self._resolution_label.setText(f"{w}×{h}")
+        self._resolution_label.setText(f"{w}x{h}")
 
     def _update_fps(self):
         """Update FPS counter."""
@@ -351,7 +379,7 @@ class VideoPanel(QWidget):
             self._last_fps_time = now
             self._fps_label.setText(f"FPS: {self._fps:.1f}")
 
-    def show_placeholder(self, message: str = "Waiting for camera feed..."):
+    def show_placeholder(self, message: str = "AWAITING FEED"):
         """Show a placeholder message when no video is available."""
         self._video_label.clear()
         self._video_label.setText(message)

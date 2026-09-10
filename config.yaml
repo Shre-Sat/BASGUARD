@@ -11,7 +11,7 @@ capture:
   max_reconnect_attempts: 10
 
 perception:
-  yolo_model: "yolov8n.pt"       # YOLOv8-nano (fastest, CPU-friendly)
+  yolo_model: "yolov8x.pt"       # YOLOv8-xlarge (highest accuracy, requires powerful GPU)
   confidence_threshold: 0.45
   iou_threshold: 0.5
   mediapipe_max_hands: 2
@@ -47,9 +47,10 @@ sequence:
 
 alerting:
   enabled: true
+  engine: "piper"                # "piper" or "pyttsx3"
+  piper_model: "en_US-lessac-medium.onnx"
   voice_rate: 150
   voice_volume: 0.9
-  language: "en"                 # "en" for English
   alert_cooldown: 3.0            # seconds between repeated alerts of same type
 
 logging:
@@ -58,17 +59,20 @@ logging:
   summary_format: "txt"
 
 streaming:
-  enabled: false                 # Set to true when streaming target is configured
+  enabled: true
+  backend: "gstreamer"           # "gstreamer" or "opencv"
   local_save: true
   local_path: "recordings/"
-  stream_target: "udp://localhost:5000"
-  local_bitrate: "5M"
-  stream_bitrate: "1M"
-  codec: "mp4v"                  # OpenCV codec fourcc
+  rtsp_enabled: false            # Set to true when RTSP server is running
+  rtsp_url: "rtsp://localhost:8554/basguard"
+  ring_buffer_minutes: 30
+  segment_duration: 300          # seconds per file segment
+  codec: "x264"
+  frame_log: true                # per-frame JSONL logging
 
 gui:
   theme: "isro_dark"
-  window_title: "ISRO BAS Experiment Monitor — HAR System"
+  window_title: "BASGUARD — BAS Experiment Monitor"
   show_fps: true
   show_health: true
   fsm_update_interval: 1000     # ms between FSM diagram refreshes

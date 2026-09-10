@@ -22,6 +22,7 @@ class ExperimentStep:
     preconditions: List[str] = field(default_factory=list)
     next_steps: List[str] = field(default_factory=list)
     is_terminal: bool = False
+    priority: int = 10  # Lower number = higher priority for suggestions
 
 
 class ExperimentProtocol:
@@ -59,7 +60,8 @@ class ExperimentProtocol:
                 name="Open Outer Box",
                 description="Open the lid of the outer box to reveal inner boxes",
                 next_steps=["IDENTIFY_RED_BOX", "IDENTIFY_YELLOW_BOX"],
-                expected_duration_range=(2.0, 15.0)
+                expected_duration_range=(2.0, 15.0),
+                priority=1
             ),
             ExperimentStep(
                 id="IDENTIFY_RED_BOX",
@@ -67,7 +69,8 @@ class ExperimentProtocol:
                 description="Pick up and identify the red box from inside the outer box",
                 next_steps=["PLACE_RED_BOX"],
                 expected_duration_range=(2.0, 20.0),
-                preconditions=["outer_box_open"]
+                preconditions=["outer_box_open"],
+                priority=2
             ),
             ExperimentStep(
                 id="PLACE_RED_BOX",
@@ -83,7 +86,8 @@ class ExperimentProtocol:
                 description="Pick up and identify the yellow box from inside the outer box",
                 next_steps=["PLACE_YELLOW_BOX"],
                 expected_duration_range=(2.0, 20.0),
-                preconditions=["outer_box_open"]
+                preconditions=["outer_box_open"],
+                priority=2
             ),
             ExperimentStep(
                 id="PLACE_YELLOW_BOX",
@@ -144,63 +148,7 @@ class ExperimentProtocol:
         step = self.steps.get(step_id)
         return step.preconditions if step else []
 
-    def to_dot(self, current_step: str = "", completed_steps: set = None) -> str:
-        """
-        Generate Graphviz DOT representation of the protocol.
-        
-        Args:
-            current_step: Current active step (highlighted in orange)
-            completed_steps: Set of completed step IDs (shown in green)
-        """
-        if completed_steps is None:
-            completed_steps = set()
 
-        lines = [
-            'digraph ExperimentProtocol {',
-            '    rankdir=LR;',
-            '    bgcolor="transparent";',
-            '    node [shape=box, style="rounded,filled", fontname="Inter", fontsize=11];',
-            '    edge [fontname="Inter", fontsize=9, color="#4a5568"];',
-            ''
-        ]
-
-        for step_id, step in self.steps.items():
-            # Determine node styling
-            if step_id == current_step:
-                color = '#FF6B00'  # ISRO orange — current step
-                fontcolor = 'white'
-                penwidth = '3'
-            elif step_id in completed_steps:
-                color = '#00E676'  # Green — completed
-                fontcolor = '#1a1a2e'
-                penwidth = '2'
-            elif step.is_terminal:
-                color = '#00B4D8'  # Blue — terminal
-                fontcolor = 'white'
-                penwidth = '2'
-            else:
-                color = '#2d3748'  # Dark grey — pending
-                fontcolor = '#e2e8f0'
-                penwidth = '1'
-
-            label = f"{step.name}\\n({step_id})"
-            lines.append(
-                f'    {step_id} [label="{label}", fillcolor="{color}", '
-                f'fontcolor="{fontcolor}", penwidth={penwidth}];'
-            )
-
-        lines.append('')
-
-        # Edges
-        for step_id, step in self.steps.items():
-            for next_step in step.next_steps:
-                edge_color = '#FF6B00' if step_id == current_step else '#4a5568'
-                lines.append(
-                    f'    {step_id} -> {next_step} [color="{edge_color}"];'
-                )
-
-        lines.append('}')
-        return '\n'.join(lines)
 
     @property
     def total_steps(self) -> int:
