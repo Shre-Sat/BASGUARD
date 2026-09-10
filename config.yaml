@@ -1,0 +1,74 @@
+# ============================================================
+# ISRO BAS Experiment Monitor — Configuration
+# AI-Based Human Activity Recognition System
+# ============================================================
+
+capture:
+  source: 0                      # 0 = webcam, or path to video file (e.g., "assets/demo_video.mp4")
+  fps: 30
+  resolution: [1280, 720]
+  reconnect_delay: 2.0           # seconds before retrying camera on disconnect
+  max_reconnect_attempts: 10
+
+perception:
+  yolo_model: "yolov8n.pt"       # YOLOv8-nano (fastest, CPU-friendly)
+  confidence_threshold: 0.45
+  iou_threshold: 0.5
+  mediapipe_max_hands: 2
+  mediapipe_detection_confidence: 0.6
+  mediapipe_tracking_confidence: 0.5
+  interaction_proximity_px: 100  # pixels: hand-object proximity for interaction
+  grasp_finger_threshold: 40    # pixels: thumb-index distance for grasp detection
+  temporal_smooth_window: 5     # frames: sliding window for interaction smoothing
+
+  # Color-based object filtering (HSV ranges for red and yellow boxes)
+  color_filters:
+    red:
+      lower_1: [0, 100, 100]     # Lower red hue range
+      upper_1: [10, 255, 255]
+      lower_2: [160, 100, 100]   # Upper red hue range (wraps around)
+      upper_2: [180, 255, 255]
+      min_area: 2000             # Minimum contour area in pixels
+    yellow:
+      lower: [20, 100, 100]
+      upper: [35, 255, 255]
+      min_area: 2000
+    outer_box:
+      # Brown/cardboard box detection
+      lower: [10, 50, 50]
+      upper: [25, 200, 200]
+      min_area: 5000
+
+sequence:
+  protocol: "red_yellow_box"
+  confidence_threshold: 0.6
+  uncertainty_message: "Uncertain detection. Please verify the current step."
+  step_hold_frames: 10           # Frames a step must be stable before confirming
+
+alerting:
+  enabled: true
+  voice_rate: 150
+  voice_volume: 0.9
+  language: "en"                 # "en" for English
+  alert_cooldown: 3.0            # seconds between repeated alerts of same type
+
+logging:
+  output_dir: "logs/"
+  log_format: "jsonl"
+  summary_format: "txt"
+
+streaming:
+  enabled: false                 # Set to true when streaming target is configured
+  local_save: true
+  local_path: "recordings/"
+  stream_target: "udp://localhost:5000"
+  local_bitrate: "5M"
+  stream_bitrate: "1M"
+  codec: "mp4v"                  # OpenCV codec fourcc
+
+gui:
+  theme: "isro_dark"
+  window_title: "ISRO BAS Experiment Monitor — HAR System"
+  show_fps: true
+  show_health: true
+  fsm_update_interval: 1000     # ms between FSM diagram refreshes
