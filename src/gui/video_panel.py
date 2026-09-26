@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 import time
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap, QFont
 
 from .styles import COLORS
@@ -226,8 +226,6 @@ class VideoPanel(QWidget):
 
     def _draw_hands(self, frame: np.ndarray, hand_states) -> np.ndarray:
         """Draw hand landmarks with connections."""
-        from src.perception.hand_tracker import LandmarkIdx
-
         CONNECTIONS = [
             (0, 1), (1, 2), (2, 3), (3, 4),
             (0, 5), (5, 6), (6, 7), (7, 8),
