@@ -14,6 +14,12 @@ interface AppState {
   audioMuted: boolean;
   toggleAudioMuted: () => void;
   
+  // Theme & Orbital Day/Night Telemetry
+  themeMode: 'NIGHT' | 'DAY';
+  toggleThemeMode: () => void;
+  orbitalPhase: 'DAY' | 'NIGHT';
+  toggleOrbitalPhase: () => void;
+
   // HUD Camera controls
   showScanlines: boolean;
   setShowScanlines: (show: boolean) => void;
@@ -79,7 +85,7 @@ const INITIAL_EXPERIMENT: ExperimentState = {
 };
 
 export const useExperimentStore = create<AppState>((set, get) => ({
-  demoMode: true, // Default to interactive demo mode for rich experience out-of-the-box
+  demoMode: true,
   setDemoMode: (enabled) => set({ demoMode: enabled }),
 
   audioMuted: false,
@@ -89,6 +95,29 @@ export const useExperimentStore = create<AppState>((set, get) => ({
       window.speechSynthesis.cancel();
     }
     return { audioMuted: nextMuted };
+  }),
+
+  themeMode: 'NIGHT',
+  toggleThemeMode: () => set((state) => {
+    const nextTheme = state.themeMode === 'NIGHT' ? 'DAY' : 'NIGHT';
+    if (nextTheme === 'DAY') {
+      document.documentElement.classList.add('theme-day');
+    } else {
+      document.documentElement.classList.remove('theme-day');
+    }
+    return { themeMode: nextTheme };
+  }),
+
+  orbitalPhase: 'DAY',
+  toggleOrbitalPhase: () => set((state) => {
+    const nextPhase = state.orbitalPhase === 'DAY' ? 'NIGHT' : 'DAY';
+    get().addAlert({
+      severity: 'INFO',
+      type: 'SYSTEM',
+      message: `Orbital cycle transition: Station entered ORBITAL ${nextPhase === 'DAY' ? 'SUNLIGHT (DAY)' : 'ECLIPSE (NIGHT)'}.`,
+      acknowledged: false
+    });
+    return { orbitalPhase: nextPhase };
   }),
 
   showScanlines: true,
@@ -127,7 +156,6 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     const newId = Math.random().toString(36).substring(7);
     const newAlert = { ...alert, id: newId, timestamp: Date.now(), acknowledged: false };
     
-    // Play voice audio alert or beep based on severity
     if (!get().audioMuted) {
       if (alert.severity === 'CRITICAL') {
         speakAlert(`Warning: Anomaly detected. ${alert.message}`);
@@ -172,7 +200,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     };
     
     ws.onmessage = (event) => {
-      if (get().demoMode) return; // Ignore backend if in demo mode
+      if (get().demoMode) return;
       try {
         const data = JSON.parse(event.data);
         

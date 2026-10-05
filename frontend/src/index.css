@@ -15,15 +15,28 @@
     --color-semantic-critical: #EF4444;
   }
 
+  /* High-Contrast Solar Day Theme Mode */
+  html.theme-day {
+    --color-bg-base: #0F172A;
+    --color-panel: rgba(30, 41, 59, 0.85);
+    filter: saturate(1.1) contrast(1.05);
+  }
+
   body {
-    @apply bg-[#05080E] text-slate-100 antialiased font-sans m-0 p-0 h-screen w-screen overflow-hidden select-none;
+    @apply bg-[#05080E] text-slate-100 antialiased font-sans m-0 p-0 h-screen w-screen overflow-hidden select-none transition-colors duration-300;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'tnum';
     background-image: 
       radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
       radial-gradient(circle at 100% 100%, rgba(255, 153, 51, 0.04) 0%, transparent 50%);
   }
 
-  /* Monospace numbers default for tabular data */
+  html.theme-day body {
+    background-color: #0F172A;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12) 0%, transparent 60%),
+      radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+  }
+
   .font-mono-numbers {
     font-family: 'JetBrains Mono', monospace;
     font-variant-numeric: tabular-nums;
@@ -36,11 +49,18 @@
 
 /* Glassmorphism & High-tech Panel Styles */
 .glass-panel {
-  background: rgba(13, 19, 32, 0.7);
+  background: rgba(13, 19, 32, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.theme-day .glass-panel {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
 }
 
 .glass-panel-interactive {

@@ -10,7 +10,10 @@ import {
   AlertOctagon, 
   CheckCircle2, 
   Sparkles,
-  Radio
+  Radio,
+  Sun,
+  Moon,
+  SunMedium
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -20,6 +23,10 @@ export const Header = () => {
     demoMode, 
     audioMuted, 
     toggleAudioMuted,
+    themeMode,
+    toggleThemeMode,
+    orbitalPhase,
+    toggleOrbitalPhase,
     triggerNormalSequence,
     triggerOutOfSequence,
     triggerLowConfidence,
@@ -29,9 +36,13 @@ export const Header = () => {
 
   const [time, setTime] = useState(new Date());
   const [showSimMenu, setShowSimMenu] = useState(false);
+  const [countdown, setCountdown] = useState(1458); // Seconds remaining in 45-min orbital phase
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 200);
+    const timer = setInterval(() => {
+      setTime(new Date());
+      setCountdown(prev => (prev > 0 ? prev - 1 : 2700));
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -48,8 +59,15 @@ export const Header = () => {
     return d.toISOString().substring(11, 19);
   };
 
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   return (
     <header className="h-12 flex items-center justify-between px-4 bg-[#0A0E17]/90 backdrop-blur-md border-b border-white/10 shrink-0 z-30 select-none">
+      {/* Left: Branding & ISRO Mission Mark */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <div className="relative flex items-center justify-center w-7 h-7 rounded bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro">
@@ -71,6 +89,7 @@ export const Header = () => {
 
         <div className="h-4 w-px bg-white/10" />
 
+        {/* Operational Status */}
         <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/60 border border-white/5">
           <div className="relative flex items-center justify-center">
             <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-rose-500'}`} />
@@ -82,29 +101,50 @@ export const Header = () => {
         </div>
       </div>
 
-      <div className="hidden md:flex items-center gap-6 text-xs font-mono">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">PAYLOAD:</span>
-          <span className="text-amber-400 font-semibold">ISRO-BAS-01</span>
-        </div>
+      {/* Center: Dual Orbital Day/Night Telemetry Display */}
+      <div className="flex items-center gap-3">
+        {/* Orbital Solar Cycle Telemetry Display (Sunlit vs Eclipse) */}
+        <button
+          onClick={toggleOrbitalPhase}
+          title="Click to toggle station Orbital Day (Sunlit) / Orbital Night (Eclipse) cycle"
+          className={`flex items-center gap-2 px-2.5 py-1 rounded border text-xs font-mono transition-all ${
+            orbitalPhase === 'DAY'
+              ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-glow-isro'
+              : 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 shadow-glow-accent'
+          }`}
+        >
+          {orbitalPhase === 'DAY' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+          )}
+          <div className="flex flex-col text-left leading-none">
+            <span className="text-[10px] font-bold tracking-wider">
+              ORBITAL {orbitalPhase === 'DAY' ? 'SUNLIGHT (DAY)' : 'ECLIPSE (NIGHT)'}
+            </span>
+            <span className="text-[9px] text-slate-400 mt-0.5">
+              {orbitalPhase === 'DAY' ? 'SOLAR +28.4V' : 'BATTERY -12.2A'} · {formatCountdown(countdown)}
+            </span>
+          </div>
+        </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">ORBIT:</span>
-          <span className="text-slate-200">LEO 400 KM</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">FPS:</span>
-          <span className="text-emerald-400 font-semibold">{health.fps.toFixed(1)}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">LATENCY:</span>
-          <span className="text-blue-400">{health.inferenceLatency.toFixed(0)} ms</span>
-        </div>
+        {/* UI Night / Day Theme Mode Switcher */}
+        <button
+          onClick={toggleThemeMode}
+          title={`Switch UI to ${themeMode === 'NIGHT' ? 'Solar Day (High-Contrast Light)' : 'Deep Space Night'} Mode`}
+          className={`p-1.5 rounded transition-all glass-button ${
+            themeMode === 'DAY'
+              ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+              : 'bg-slate-800 text-slate-300 border-white/10'
+          }`}
+        >
+          {themeMode === 'DAY' ? <SunMedium className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-blue-400" />}
+        </button>
       </div>
 
+      {/* Right: Controls, Voice Toggle, Clock */}
       <div className="flex items-center gap-3">
+        {/* Voice Audio Toggle */}
         <button
           onClick={toggleAudioMuted}
           title={audioMuted ? 'Unmute Neural Voice Alerts' : 'Mute Voice Alerts'}
@@ -115,6 +155,7 @@ export const Header = () => {
           {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
         </button>
 
+        {/* Demo Controller Button */}
         <div className="relative">
           <button
             onClick={() => setShowSimMenu(!showSimMenu)}
@@ -185,6 +226,7 @@ export const Header = () => {
           </AnimatePresence>
         </div>
 
+        {/* Live Clock Display */}
         <div className="flex items-center gap-2 px-3 py-1 rounded bg-slate-950/80 border border-white/10 text-xs font-mono text-slate-200 shadow-inner">
           <Clock className="w-3.5 h-3.5 text-blue-400" />
           <div className="flex flex-col text-[10px] leading-tight font-mono">
