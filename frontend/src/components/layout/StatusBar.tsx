@@ -1,8 +1,8 @@
 import { useExperimentStore } from '../../store/useExperimentStore';
-import { Activity, ShieldCheck, Cpu, HardDrive, Wifi } from 'lucide-react';
+import { ShieldCheck, Wifi } from 'lucide-react';
 
 export const StatusBar = () => {
-  const { health, experiment } = useExperimentStore();
+  const { experiment } = useExperimentStore();
 
   const isNominal = experiment.status !== 'ERROR';
 
@@ -25,30 +25,12 @@ export const StatusBar = () => {
         </div>
       </div>
 
-      {/* Center: Live Telemetry Ticker */}
-      <div className="hidden lg:flex items-center gap-6 text-[10px]">
-        <div className="flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-blue-400" />
-          <span>CPU {health.cpu.toFixed(0)}%</span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Activity className="w-3 h-3 text-emerald-400" />
-          <span>GPU {health.gpu.toFixed(0)}%</span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <HardDrive className="w-3 h-3 text-amber-400" />
-          <span>VRAM {health.ram.toFixed(1)} GB</span>
-        </div>
-      </div>
-
       {/* Right: Network WebSocket Ping */}
       <div className="flex items-center gap-2">
-        <Wifi className="w-3 h-3 text-emerald-400" />
-        <span className="text-slate-300">WEBSOCKET 127.0.0.1:8000</span>
+        <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+        <span className="text-slate-300">WEBSOCKET ONLINE</span>
         <span className="px-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px]">
-          ACTIVE
+          100%
         </span>
       </div>
     </footer>

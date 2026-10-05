@@ -21,8 +21,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const Header = () => {
   const { 
-    health, 
-    demoMode, 
     audioMuted, 
     toggleAudioMuted,
     themeMode,
@@ -38,17 +36,13 @@ export const Header = () => {
 
   const [time, setTime] = useState(new Date());
   const [showSimMenu, setShowSimMenu] = useState(false);
-  const [countdown, setCountdown] = useState(1458);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date());
-      setCountdown(prev => (prev > 0 ? prev - 1 : 2700));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const isOnline = health.streamStatus === 'CONNECTED' || demoMode;
 
   const formatIST = (d: Date) => {
     return d.toLocaleTimeString('en-IN', {
@@ -61,16 +55,10 @@ export const Header = () => {
     return d.toISOString().substring(11, 19);
   };
 
-  const formatCountdown = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
-
   return (
     <header className="h-12 flex items-center justify-between px-4 bg-[#0A0E17]/90 backdrop-blur-md border-b border-white/10 shrink-0 z-30 select-none">
       {/* Left: Branding & ISRO Mission Mark */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <img src="/basguard-logo.png" alt="BASGUARD Logo" className="h-7 w-auto object-contain drop-shadow-sm" />
           <div className="relative flex items-center justify-center w-6 h-6 rounded bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro">
@@ -78,39 +66,17 @@ export const Header = () => {
               <span className="text-[10px] font-black tracking-tighter text-amber-400 font-mono">ISRO</span>
             </div>
           </div>
-
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-100 tracking-tight font-sans">BASGUARD</span>
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                v2.4.1
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400">Biological Activity Space Monitor (Easy AI 🚀)</span>
-          </div>
+          <span className="text-base font-extrabold tracking-tight text-slate-100 font-sans">BASGUARD</span>
         </Link>
-
-        <div className="h-4 w-px bg-white/10" />
-
-        {/* Operational Status */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/60 border border-white/5">
-          <div className="relative flex items-center justify-center">
-            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-rose-500'}`} />
-            {isOnline && <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />}
-          </div>
-          <span className="text-xs font-mono font-medium text-slate-300">
-            {demoMode ? 'SIMULATED EDGE AI 🤖' : isOnline ? 'HARDWARE ONLINE ⚡' : 'STREAM DISCONNECTED 📡'}
-          </span>
-        </div>
       </div>
 
       {/* Center: Dual Orbital Day/Night Telemetry Display */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Orbital Solar Cycle Telemetry Display (Sunlit vs Eclipse) */}
         <button
           onClick={toggleOrbitalPhase}
           title="Click to toggle Orbital Day (Sunlit ☀️) / Orbital Night (Eclipse 🌙)"
-          className={`flex items-center gap-2 px-2.5 py-1 rounded border text-xs font-mono transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-mono transition-all ${
             orbitalPhase === 'DAY'
               ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-glow-isro'
               : 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 shadow-glow-accent'
@@ -121,14 +87,9 @@ export const Header = () => {
           ) : (
             <Moon className="w-3.5 h-3.5 text-indigo-400" />
           )}
-          <div className="flex flex-col text-left leading-none">
-            <span className="text-[10px] font-bold tracking-wider">
-              ORBITAL {orbitalPhase === 'DAY' ? 'SUNLIGHT (DAY ☀️)' : 'ECLIPSE (NIGHT 🌙)'}
-            </span>
-            <span className="text-[9px] text-slate-400 mt-0.5">
-              {orbitalPhase === 'DAY' ? 'SOLAR CHARGING +28.4V' : 'BATTERY POWER -12.2A'} · {formatCountdown(countdown)}
-            </span>
-          </div>
+          <span className="text-[10px] font-bold tracking-wider">
+            {orbitalPhase === 'DAY' ? 'ORBITAL DAY ☀️' : 'ORBITAL NIGHT 🌙'}
+          </span>
         </button>
 
         {/* Language Selector Dropdown Choice */}

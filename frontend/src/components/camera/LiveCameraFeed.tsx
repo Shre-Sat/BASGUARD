@@ -5,7 +5,6 @@ import {
   Eye, 
   Scan,
   Video,
-  UserCheck,
   CheckCircle2,
   RefreshCw
 } from 'lucide-react';
@@ -389,15 +388,6 @@ export const LiveCameraFeed = () => {
                     </motion.div>
                   </>
                 )}
-
-                <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1 text-[11px] font-mono text-slate-300 bg-slate-950/80 p-2.5 rounded border border-white/10 backdrop-blur-md">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-emerald-400 font-semibold">LIVE DETECTIONS ({activeCam})</span>
-                  </div>
-                  <div className="text-slate-400">YOLO: 14.2ms | MEDIAPIPE 3D: 8.6ms</div>
-                  <div className="text-slate-400">PETRI-NET: STATE VALID</div>
-                </div>
               </div>
             ) : (
               <img 
@@ -415,32 +405,16 @@ export const LiveCameraFeed = () => {
           </div>
         )}
 
-        {/* Floating Astronaut Step Verification Card */}
-        <div className="absolute top-4 right-4 z-30 glass-panel p-3 rounded-lg border border-white/10 w-72 flex flex-col gap-2 shadow-2xl">
-          <div className="flex items-center justify-between pb-1.5 border-b border-white/10 text-xs font-mono">
-            <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-              <UserCheck className="w-4 h-4 text-blue-400" /> ASTRONAUT STEP VERIFIER
-            </span>
-            <span className="text-[10px] text-emerald-400 font-bold">ACTIVE</span>
-          </div>
-
-          <div className="flex flex-col gap-1 font-mono text-[11px]">
-            <div className="flex justify-between text-slate-400">
-              <span>CURRENT STEP:</span>
-              <span className="text-amber-400 font-bold">{experiment.currentStepId}</span>
-            </div>
-            <p className="text-[10px] font-sans text-slate-300 leading-snug">
-              Monitoring astronaut glove trajectory & box contact vector.
-            </p>
-
-            <button
-              onClick={triggerNormalSequence}
-              className="mt-1.5 w-full py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-mono text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-              <span>VERIFY STEP ({experiment.currentStepId})</span>
-            </button>
-          </div>
+        {/* Compact Floating Astronaut Step Verification Button */}
+        <div className="absolute top-3 right-3 z-30">
+          <button
+            onClick={triggerNormalSequence}
+            className="px-3 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-500 text-white font-mono text-xs font-semibold flex items-center gap-2 backdrop-blur-md shadow-lg border border-blue-400/30 transition-all active:scale-95"
+            title="Click to verify current astronaut step"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+            <span>VERIFY STEP ({experiment.currentStepId})</span>
+          </button>
         </div>
       </div>
 
