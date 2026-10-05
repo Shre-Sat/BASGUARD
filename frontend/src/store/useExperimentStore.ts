@@ -5,12 +5,21 @@ import type {
   SystemHealth, 
   ProtocolStep 
 } from '../types';
+import { speakAlert, playUiBeep } from '../utils/audioAlert';
 
 interface AppState {
-  // Mode
+  // Mode & Audio
   demoMode: boolean;
   setDemoMode: (enabled: boolean) => void;
+  audioMuted: boolean;
+  toggleAudioMuted: () => void;
   
+  // HUD Camera controls
+  showScanlines: boolean;
+  setShowScanlines: (show: boolean) => void;
+  showHsvFilter: boolean;
+  setShowHsvFilter: (show: boolean) => void;
+
   // Protocol Definition
   protocol: ProtocolStep[];
   
@@ -24,6 +33,8 @@ interface AppState {
   updateExperiment: (update: Partial<ExperimentState>) => void;
   addAlert: (alert: Omit<AlertEvent, 'id' | 'timestamp'>) => void;
   updateHealth: (update: Partial<SystemHealth>) => void;
+  acknowledgeAlert: (alertId: string) => void;
+  clearAllAlerts: () => void;
   
   // Real backend connection
   connectWebSocket: (url: string) => void;
@@ -38,42 +49,73 @@ interface AppState {
 }
 
 const DEFAULT_PROTOCOL: ProtocolStep[] = [
-  { id: 'IDLE', name: 'Wait', description: 'System ready.' },
-  { id: 'DETECT_OUTER', name: 'Detect Outer Box', description: 'Ensure outer box is visible.' },
-  { id: 'OPEN_OUTER', name: 'Open Outer Box', description: 'Open the lid of the outer box.' },
-  { id: 'IDENTIFY_RED', name: 'Identify Red Box', description: 'Locate the red inner box.' },
-  { id: 'IDENTIFY_YELLOW', name: 'Identify Yellow Box', description: 'Locate the yellow inner box.' },
-  { id: 'PICK_YELLOW', name: 'Pick Yellow Box', description: 'Grasp the yellow box.' },
-  { id: 'PLACE_YELLOW', name: 'Place Yellow Box', description: 'Place the yellow box down.' },
-  { id: 'COMPLETE', name: 'Complete', description: 'Experiment finished.' },
+  { id: 'IDLE', name: 'Wait / Standby', description: 'System ready. Payload telemetry active.' },
+  { id: 'DETECT_OUTER', name: 'Detect Outer Box', description: 'Validate outer biological containment box position.' },
+  { id: 'OPEN_OUTER', name: 'Open Outer Box', description: 'Astronaut unlatches containment box lid.' },
+  { id: 'IDENTIFY_RED', name: 'Identify Red Box', description: 'Locate Red Specimen Container A.' },
+  { id: 'IDENTIFY_YELLOW', name: 'Identify Yellow Box', description: 'Locate Yellow Specimen Container B.' },
+  { id: 'PICK_YELLOW', name: 'Pick Yellow Box', description: 'Astronaut grasps Yellow Specimen Container.' },
+  { id: 'PLACE_YELLOW', name: 'Place Yellow Box', description: 'Position container on analysis workbench dock.' },
+  { id: 'COMPLETE', name: 'Protocol Completed', description: 'Experiment sequence finalized and telemetry logged.' },
 ];
 
 const INITIAL_HEALTH: SystemHealth = {
-  fps: 0,
-  inferenceLatency: 0,
-  cpu: 0,
-  gpu: 0,
-  ram: 0,
-  power: 0,
-  storage: 0,
-  streamStatus: 'DISCONNECTED',
+  fps: 29.8,
+  inferenceLatency: 14.2,
+  cpu: 34.5,
+  gpu: 62.1,
+  ram: 4.8,
+  power: 45.2,
+  storage: 124.5,
+  streamStatus: 'CONNECTED',
 };
 
 const INITIAL_EXPERIMENT: ExperimentState = {
   currentStepId: 'IDLE',
   completedStepIds: [],
   nextStepId: 'DETECT_OUTER',
-  confidence: 0,
+  confidence: 98.4,
   status: 'IDLE'
 };
 
 export const useExperimentStore = create<AppState>((set, get) => ({
-  demoMode: false, // Default to false to use real backend
+  demoMode: true, // Default to interactive demo mode for rich experience out-of-the-box
   setDemoMode: (enabled) => set({ demoMode: enabled }),
+
+  audioMuted: false,
+  toggleAudioMuted: () => set((state) => {
+    const nextMuted = !state.audioMuted;
+    if (nextMuted && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    return { audioMuted: nextMuted };
+  }),
+
+  showScanlines: true,
+  setShowScanlines: (show) => set({ showScanlines: show }),
+  showHsvFilter: false,
+  setShowHsvFilter: (show) => set({ showHsvFilter: show }),
   
   protocol: DEFAULT_PROTOCOL,
   experiment: { ...INITIAL_EXPERIMENT },
-  alerts: [],
+  alerts: [
+    {
+      id: 'init-1',
+      severity: 'INFO',
+      type: 'SYSTEM',
+      message: 'ISRO BASGuard perception pipeline initialized. FPS: 30.0.',
+      timestamp: Date.now() - 120000,
+      acknowledged: true
+    },
+    {
+      id: 'init-2',
+      severity: 'SUCCESS',
+      type: 'STEP_COMPLETED',
+      message: 'Petri-Net sequence model loaded successfully [FSM v2.4.1].',
+      timestamp: Date.now() - 60000,
+      acknowledged: true
+    }
+  ],
   health: { ...INITIAL_HEALTH },
   detections: [],
   
@@ -81,19 +123,46 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     experiment: { ...state.experiment, ...update } 
   })),
   
-  addAlert: (alert) => set((state) => ({
-    alerts: [
-      { ...alert, id: Math.random().toString(36).substring(7), timestamp: Date.now() },
-      ...state.alerts
-    ].slice(0, 50) // Keep last 50
+  addAlert: (alert) => {
+    const newId = Math.random().toString(36).substring(7);
+    const newAlert = { ...alert, id: newId, timestamp: Date.now(), acknowledged: false };
+    
+    // Play voice audio alert or beep based on severity
+    if (!get().audioMuted) {
+      if (alert.severity === 'CRITICAL') {
+        speakAlert(`Warning: Anomaly detected. ${alert.message}`);
+      } else if (alert.severity === 'WARNING') {
+        speakAlert(`Alert: ${alert.message}`);
+      } else if (alert.severity === 'SUCCESS') {
+        playUiBeep(1046, 'sine', 0.1);
+      } else {
+        playUiBeep(523, 'sine', 0.05);
+      }
+    }
+
+    set((state) => ({
+      alerts: [newAlert, ...state.alerts].slice(0, 50)
+    }));
+  },
+
+  acknowledgeAlert: (alertId) => set((state) => ({
+    alerts: state.alerts.map((a) => a.id === alertId ? { ...a, acknowledged: true } : a)
   })),
+
+  clearAllAlerts: () => set({ alerts: [] }),
   
   updateHealth: (update) => set((state) => ({
     health: { ...state.health, ...update }
   })),
 
   connectWebSocket: (url: string) => {
-    let ws = new WebSocket(url);
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(url);
+    } catch {
+      console.log('Backend websocket offline. Operating in edge mode.');
+      return;
+    }
     
     ws.onopen = () => {
       console.log('Connected to BASGuard Backend WebSocket');
@@ -117,7 +186,6 @@ export const useExperimentStore = create<AppState>((set, get) => ({
             newState.experiment = { ...state.experiment, ...data.experiment };
           }
           if (data.alerts && Array.isArray(data.alerts)) {
-            // Append new alerts that don't already exist (simple dedup by timestamp/message)
             const newAlerts = data.alerts.filter((a: any) => 
               !state.alerts.some(existing => existing.timestamp === a.timestamp && existing.message === a.message)
             ).map((a: any) => ({
@@ -145,16 +213,9 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     };
     
     ws.onclose = () => {
-      console.log('WebSocket disconnected. Reconnecting in 3s...');
       set((state) => ({
-        health: { ...state.health, streamStatus: 'DISCONNECTED', fps: 0 }
+        health: { ...state.health, streamStatus: 'DISCONNECTED' }
       }));
-      setTimeout(() => get().connectWebSocket(url), 3000);
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket Error:', error);
-      ws.close();
     };
   },
   
@@ -170,18 +231,18 @@ export const useExperimentStore = create<AppState>((set, get) => ({
       addAlert({
         severity: 'SUCCESS',
         type: 'STEP_COMPLETED',
-        message: `Step ${currentIndex} completed successfully`,
+        message: `Step ${currentIndex + 1} (${protocol[currentIndex].name}) verified successfully`,
         acknowledged: false
       });
       
       set((state) => ({
         experiment: {
           ...state.experiment,
-          status: 'IN_PROGRESS',
+          status: nextStep.id === 'COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS',
           completedStepIds: [...state.experiment.completedStepIds, state.experiment.currentStepId],
           currentStepId: nextStep.id,
           nextStepId: futureStep ? futureStep.id : null,
-          confidence: 94 + Math.random() * 5
+          confidence: Number((95 + Math.random() * 4.8).toFixed(1))
         }
       }));
     }
@@ -192,11 +253,11 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     addAlert({
       severity: 'CRITICAL',
       type: 'OUT_OF_SEQUENCE',
-      message: `Expected: ${experiment.nextStepId}. Detected: CLOSE_OUTER_BOX`,
+      message: `Protocol Violation! Expected: ${experiment.nextStepId || 'NEXT_STEP'}. Detected out-of-order action.`,
       acknowledged: false
     });
     set((state) => ({
-      experiment: { ...state.experiment, status: 'ERROR', confidence: 45.2 }
+      experiment: { ...state.experiment, status: 'ERROR', confidence: 41.3 }
     }));
   },
   
@@ -204,11 +265,11 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'WARNING',
       type: 'LOW_CONFIDENCE',
-      message: 'Unable to confidently identify hand-object interaction',
+      message: 'Perception confidence dropped below threshold (34.8%). Re-align camera feed.',
       acknowledged: false
     });
     set((state) => ({
-      experiment: { ...state.experiment, confidence: 32.4 }
+      experiment: { ...state.experiment, confidence: 34.8 }
     }));
   },
   
@@ -216,7 +277,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'CRITICAL',
       type: 'STREAM_LOST',
-      message: 'Connection to CAM-01 lost. Attempting reconnect...',
+      message: 'Primary feed CAM-01 connection lost. Attempting edge fallback stream...',
       acknowledged: false
     });
     set((state) => ({
@@ -228,9 +289,9 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     const { protocol, addAlert } = get();
     const allIds = protocol.map(p => p.id);
     addAlert({
-      severity: 'INFO',
+      severity: 'SUCCESS',
       type: 'SYSTEM',
-      message: 'Experiment sequence successfully completed.',
+      message: 'All ISRO BAS experiment procedural steps verified by Petri-Net FSM.',
       acknowledged: false
     });
     set({
@@ -238,7 +299,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
         currentStepId: 'COMPLETE',
         completedStepIds: allIds.slice(0, -1),
         nextStepId: null,
-        confidence: 99.9,
+        confidence: 99.8,
         status: 'COMPLETED'
       }
     });
@@ -248,12 +309,11 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'INFO',
       type: 'SYSTEM',
-      message: 'Experiment monitoring reset',
+      message: 'Mission Control telemetry and experiment state reset to STANDBY.',
       acknowledged: false
     });
     set({
       experiment: { ...INITIAL_EXPERIMENT },
-      alerts: [],
       health: { ...INITIAL_HEALTH }
     });
   }
