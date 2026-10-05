@@ -6,13 +6,16 @@ import type {
   ProtocolStep 
 } from '../types';
 import { speakAlert, playUiBeep } from '../utils/audioAlert';
+import type { LanguageCode } from '../utils/i18n';
 
 interface AppState {
-  // Mode & Audio
+  // Mode & Audio & i18n Language Choice
   demoMode: boolean;
   setDemoMode: (enabled: boolean) => void;
   audioMuted: boolean;
   toggleAudioMuted: () => void;
+  languageMode: LanguageCode;
+  setLanguageMode: (lang: LanguageCode) => void;
   
   // Theme & Orbital Day/Night Telemetry
   themeMode: 'NIGHT' | 'WHITE_BLUE';
@@ -96,6 +99,9 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     }
     return { audioMuted: nextMuted };
   }),
+
+  languageMode: 'en',
+  setLanguageMode: (lang) => set({ languageMode: lang }),
 
   themeMode: 'NIGHT',
   toggleThemeMode: () => set((state) => {

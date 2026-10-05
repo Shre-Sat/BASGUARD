@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useExperimentStore } from '../../store/useExperimentStore';
+import { LanguageSelector } from '../common/LanguageSelector';
 import { 
   Clock, 
   Volume2, 
@@ -129,6 +130,9 @@ export const Header = () => {
             </span>
           </div>
         </button>
+
+        {/* Language Selector Dropdown Choice */}
+        <LanguageSelector />
 
         {/* UI Theme Switcher: White & Electric Blue vs Deep Space Night */}
         <button

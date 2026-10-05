@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExperimentStore } from '../store/useExperimentStore';
 import { playUiBeep, speakAlert } from '../utils/audioAlert';
+import { getTranslation } from '../utils/i18n';
+import { LanguageSelector } from '../components/common/LanguageSelector';
 import { 
   Rocket, 
-  ShieldCheck, 
   Sparkles, 
   Cpu, 
   Activity, 
@@ -13,7 +14,8 @@ import {
   ChevronRight,
   Palette,
   Volume2,
-  VolumeX
+  VolumeX,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -40,9 +42,19 @@ const ISRO_QUOTES = [
 
 export const LaunchPage = () => {
   const navigate = useNavigate();
-  const { themeMode, toggleThemeMode, audioMuted, toggleAudioMuted, setDemoMode } = useExperimentStore();
+  const { 
+    themeMode, 
+    toggleThemeMode, 
+    audioMuted, 
+    toggleAudioMuted, 
+    setDemoMode,
+    languageMode 
+  } = useExperimentStore();
+
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const [isLaunching, setIsLaunching] = useState(false);
+
+  const t = (key: string) => getTranslation(languageMode, key);
 
   const handleStartMission = () => {
     setIsLaunching(true);
@@ -50,7 +62,7 @@ export const LaunchPage = () => {
     setTimeout(() => playUiBeep(1760, 'sine', 0.3), 150);
 
     if (!audioMuted) {
-      speakAlert("Welcome to I S R O BAS Guard. Mission Control system online.");
+      speakAlert(t('welcome_voice'));
     }
 
     setTimeout(() => {
@@ -94,8 +106,11 @@ export const LaunchPage = () => {
           </div>
         </div>
 
-        {/* Top Right Theme & Audio Toggles */}
+        {/* Top Right Theme, Language & Audio Toggles */}
         <div className="flex items-center gap-2">
+          {/* Multi-Language Selector Choice Dropdown */}
+          <LanguageSelector />
+
           <button
             onClick={toggleThemeMode}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono font-semibold transition-all ${
@@ -105,7 +120,7 @@ export const LaunchPage = () => {
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>{themeMode === 'WHITE_BLUE' ? 'WHITE & BLUE ☀️' : 'DEEP SPACE 🌌'}</span>
+            <span>{themeMode === 'WHITE_BLUE' ? t('white_blue') : t('deep_space')}</span>
           </button>
 
           <button
@@ -146,7 +161,7 @@ export const LaunchPage = () => {
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-mono mb-2 shadow-glow-isro shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-          <span className="font-semibold">ISRO SPACE EXPERIMENT AI MONITOR</span>
+          <span className="font-semibold">{t('badge_title')}</span>
         </motion.div>
 
         {/* Compact Hero Title */}
@@ -156,9 +171,9 @@ export const LaunchPage = () => {
           transition={{ duration: 0.5, delay: 0.15 }}
           className="text-2xl sm:text-3xl font-black tracking-tight leading-tight max-w-2xl mb-2 font-sans shrink-0"
         >
-          Precision Space Safety &amp;{' '}
+          {t('hero_title_1')}
           <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-amber-400 bg-clip-text text-transparent">
-            Astronaut Verification
+            {t('hero_title_2')}
           </span>
         </motion.h1>
 
@@ -225,10 +240,10 @@ export const LaunchPage = () => {
             </div>
             <div className="flex flex-col text-left leading-tight">
               <span className="font-extrabold font-mono tracking-wider text-sm sm:text-base">
-                {isLaunching ? 'INITIALIZING MISSION CONTROL...' : 'START MISSION DASHBOARD 🚀'}
+                {isLaunching ? 'INITIALIZING MISSION CONTROL...' : t('start_mission')}
               </span>
               <span className="text-[10px] text-blue-200 font-sans font-normal">
-                Click to launch live ISRO monitor
+                {t('start_sub')}
               </span>
             </div>
             <ChevronRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform" />
