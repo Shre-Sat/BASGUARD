@@ -4,6 +4,7 @@ import { useExperimentStore } from '../store/useExperimentStore';
 import { playUiBeep, speakAlert } from '../utils/audioAlert';
 import { getTranslation } from '../utils/i18n';
 import { LanguageSelector } from '../components/common/LanguageSelector';
+import { OrbitalSpaceBackground } from '../components/common/OrbitalSpaceBackground';
 import { 
   Rocket, 
   Sparkles, 
@@ -80,6 +81,9 @@ export const LaunchPage = () => {
   return (
     <div className={`w-screen h-screen ${themeMode === 'WHITE_BLUE' ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#04070D] text-slate-100'} overflow-hidden relative font-sans select-none flex flex-col justify-between tactical-grid transition-colors duration-300`}>
       
+      {/* Floating ISRO Satellite and Astronaut Background Silhouettes */}
+      <OrbitalSpaceBackground />
+
       {/* Background Radial Glow & Animated Star Field */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-ring" />
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
