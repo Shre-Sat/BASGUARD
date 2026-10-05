@@ -15,7 +15,7 @@ interface AppState {
   toggleAudioMuted: () => void;
   
   // Theme & Orbital Day/Night Telemetry
-  themeMode: 'NIGHT' | 'DAY';
+  themeMode: 'NIGHT' | 'WHITE_BLUE';
   toggleThemeMode: () => void;
   orbitalPhase: 'DAY' | 'NIGHT';
   toggleOrbitalPhase: () => void;
@@ -55,14 +55,14 @@ interface AppState {
 }
 
 const DEFAULT_PROTOCOL: ProtocolStep[] = [
-  { id: 'IDLE', name: 'Wait / Standby', description: 'System ready. Payload telemetry active.' },
-  { id: 'DETECT_OUTER', name: 'Detect Outer Box', description: 'Validate outer biological containment box position.' },
-  { id: 'OPEN_OUTER', name: 'Open Outer Box', description: 'Astronaut unlatches containment box lid.' },
-  { id: 'IDENTIFY_RED', name: 'Identify Red Box', description: 'Locate Red Specimen Container A.' },
-  { id: 'IDENTIFY_YELLOW', name: 'Identify Yellow Box', description: 'Locate Yellow Specimen Container B.' },
-  { id: 'PICK_YELLOW', name: 'Pick Yellow Box', description: 'Astronaut grasps Yellow Specimen Container.' },
-  { id: 'PLACE_YELLOW', name: 'Place Yellow Box', description: 'Position container on analysis workbench dock.' },
-  { id: 'COMPLETE', name: 'Protocol Completed', description: 'Experiment sequence finalized and telemetry logged.' },
+  { id: 'IDLE', name: 'Wait / Standby (System Ready 🚀)', description: 'Chilling out on orbit. Awaiting astronaut signal.' },
+  { id: 'DETECT_OUTER', name: 'Detect Outer Box (Big Space Box 📦)', description: 'Locate the main biological containment unit.' },
+  { id: 'OPEN_OUTER', name: 'Open Outer Box (Unlatch Lid 🔓)', description: 'Astronaut carefully opens the main box lid.' },
+  { id: 'IDENTIFY_RED', name: 'Identify Red Box (Spicy Bio Sample A 🌶️)', description: 'Hawk-eye AI locks onto the Red Specimen Container.' },
+  { id: 'IDENTIFY_YELLOW', name: 'Identify Yellow Box (Banana Mold Sample B 🍌)', description: 'Hawk-eye AI locks onto Yellow Specimen Container.' },
+  { id: 'PICK_YELLOW', name: 'Pick Yellow Box (Careful Hold 🧑‍🚀)', description: 'Astronaut glove picks up Yellow Specimen Box.' },
+  { id: 'PLACE_YELLOW', name: 'Place Yellow Box (Dock & Lock 🔒)', description: 'Safely dock container onto workbench workstation.' },
+  { id: 'COMPLETE', name: 'Protocol Completed (High Five! 🎉)', description: 'All steps done perfectly! Telemetry saved.' },
 ];
 
 const INITIAL_HEALTH: SystemHealth = {
@@ -99,11 +99,11 @@ export const useExperimentStore = create<AppState>((set, get) => ({
 
   themeMode: 'NIGHT',
   toggleThemeMode: () => set((state) => {
-    const nextTheme = state.themeMode === 'NIGHT' ? 'DAY' : 'NIGHT';
-    if (nextTheme === 'DAY') {
-      document.documentElement.classList.add('theme-day');
+    const nextTheme = state.themeMode === 'NIGHT' ? 'WHITE_BLUE' : 'NIGHT';
+    if (nextTheme === 'WHITE_BLUE') {
+      document.documentElement.classList.add('theme-white-blue');
     } else {
-      document.documentElement.classList.remove('theme-day');
+      document.documentElement.classList.remove('theme-white-blue');
     }
     return { themeMode: nextTheme };
   }),
@@ -114,7 +114,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'INFO',
       type: 'SYSTEM',
-      message: `Orbital cycle transition: Station entered ORBITAL ${nextPhase === 'DAY' ? 'SUNLIGHT (DAY)' : 'ECLIPSE (NIGHT)'}.`,
+      message: `Orbital cycle transition: Station entered ORBITAL ${nextPhase === 'DAY' ? 'SUNLIGHT (DAY ☀️)' : 'ECLIPSE (NIGHT 🌙)'}.`,
       acknowledged: false
     });
     return { orbitalPhase: nextPhase };
@@ -132,7 +132,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
       id: 'init-1',
       severity: 'INFO',
       type: 'SYSTEM',
-      message: 'ISRO BASGuard perception pipeline initialized. FPS: 30.0.',
+      message: 'ISRO BASGuard perception pipeline initialized. FPS: 30.0 (Smooth as butter! 🧈🚀).',
       timestamp: Date.now() - 120000,
       acknowledged: true
     },
@@ -140,7 +140,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
       id: 'init-2',
       severity: 'SUCCESS',
       type: 'STEP_COMPLETED',
-      message: 'Petri-Net sequence model loaded successfully [FSM v2.4.1].',
+      message: 'Space Rules Brain loaded [Petri-FSM v2.4.1]. Astronauts get ready! 🧑‍🚀✨',
       timestamp: Date.now() - 60000,
       acknowledged: true
     }
@@ -259,7 +259,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
       addAlert({
         severity: 'SUCCESS',
         type: 'STEP_COMPLETED',
-        message: `Step ${currentIndex + 1} (${protocol[currentIndex].name}) verified successfully`,
+        message: `Step ${currentIndex + 1} (${protocol[currentIndex].name}) verified successfully! Great job Space Cadet! 🎉`,
         acknowledged: false
       });
       
@@ -281,7 +281,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     addAlert({
       severity: 'CRITICAL',
       type: 'OUT_OF_SEQUENCE',
-      message: `Protocol Violation! Expected: ${experiment.nextStepId || 'NEXT_STEP'}. Detected out-of-order action.`,
+      message: `Space Rule Violation! Expected: ${experiment.nextStepId || 'NEXT_STEP'}. Grabbed wrong item! 🚨`,
       acknowledged: false
     });
     set((state) => ({
@@ -293,7 +293,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'WARNING',
       type: 'LOW_CONFIDENCE',
-      message: 'Perception confidence dropped below threshold (34.8%). Re-align camera feed.',
+      message: 'AI is squinting! 🧐 Low detection confidence (34.8%). Please clear camera view.',
       acknowledged: false
     });
     set((state) => ({
@@ -305,7 +305,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'CRITICAL',
       type: 'STREAM_LOST',
-      message: 'Primary feed CAM-01 connection lost. Attempting edge fallback stream...',
+      message: 'Whoops! Camera signal lost in space. Retrying connection... 📡',
       acknowledged: false
     });
     set((state) => ({
@@ -319,7 +319,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     addAlert({
       severity: 'SUCCESS',
       type: 'SYSTEM',
-      message: 'All ISRO BAS experiment procedural steps verified by Petri-Net FSM.',
+      message: 'All ISRO BAS experiment steps complete! Mission Accomplished! 🏆🚀',
       acknowledged: false
     });
     set({
@@ -337,7 +337,7 @@ export const useExperimentStore = create<AppState>((set, get) => ({
     get().addAlert({
       severity: 'INFO',
       type: 'SYSTEM',
-      message: 'Mission Control telemetry and experiment state reset to STANDBY.',
+      message: 'Telemetry reset to Standby. Ready for another run! 🚀',
       acknowledged: false
     });
     set({

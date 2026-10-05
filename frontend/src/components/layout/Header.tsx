@@ -13,7 +13,7 @@ import {
   Radio,
   Sun,
   Moon,
-  SunMedium
+  Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,7 +36,7 @@ export const Header = () => {
 
   const [time, setTime] = useState(new Date());
   const [showSimMenu, setShowSimMenu] = useState(false);
-  const [countdown, setCountdown] = useState(1458); // Seconds remaining in 45-min orbital phase
+  const [countdown, setCountdown] = useState(1458);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -83,7 +83,7 @@ export const Header = () => {
                 v2.4.1
               </span>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">Biological Activity Space Monitor</span>
+            <span className="text-[10px] font-mono text-slate-400">Biological Activity Space Monitor (Easy AI 🚀)</span>
           </div>
         </div>
 
@@ -96,7 +96,7 @@ export const Header = () => {
             {isOnline && <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />}
           </div>
           <span className="text-xs font-mono font-medium text-slate-300">
-            {demoMode ? 'SIMULATED EDGE AI' : isOnline ? 'HARDWARE ONLINE' : 'STREAM DISCONNECTED'}
+            {demoMode ? 'SIMULATED EDGE AI 🤖' : isOnline ? 'HARDWARE ONLINE ⚡' : 'STREAM DISCONNECTED 📡'}
           </span>
         </div>
       </div>
@@ -106,7 +106,7 @@ export const Header = () => {
         {/* Orbital Solar Cycle Telemetry Display (Sunlit vs Eclipse) */}
         <button
           onClick={toggleOrbitalPhase}
-          title="Click to toggle station Orbital Day (Sunlit) / Orbital Night (Eclipse) cycle"
+          title="Click to toggle Orbital Day (Sunlit ☀️) / Orbital Night (Eclipse 🌙)"
           className={`flex items-center gap-2 px-2.5 py-1 rounded border text-xs font-mono transition-all ${
             orbitalPhase === 'DAY'
               ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-glow-isro'
@@ -120,25 +120,26 @@ export const Header = () => {
           )}
           <div className="flex flex-col text-left leading-none">
             <span className="text-[10px] font-bold tracking-wider">
-              ORBITAL {orbitalPhase === 'DAY' ? 'SUNLIGHT (DAY)' : 'ECLIPSE (NIGHT)'}
+              ORBITAL {orbitalPhase === 'DAY' ? 'SUNLIGHT (DAY ☀️)' : 'ECLIPSE (NIGHT 🌙)'}
             </span>
             <span className="text-[9px] text-slate-400 mt-0.5">
-              {orbitalPhase === 'DAY' ? 'SOLAR +28.4V' : 'BATTERY -12.2A'} · {formatCountdown(countdown)}
+              {orbitalPhase === 'DAY' ? 'SOLAR CHARGING +28.4V' : 'BATTERY POWER -12.2A'} · {formatCountdown(countdown)}
             </span>
           </div>
         </button>
 
-        {/* UI Night / Day Theme Mode Switcher */}
+        {/* UI Theme Switcher: White & Electric Blue vs Deep Space Night */}
         <button
           onClick={toggleThemeMode}
-          title={`Switch UI to ${themeMode === 'NIGHT' ? 'Solar Day (High-Contrast Light)' : 'Deep Space Night'} Mode`}
-          className={`p-1.5 rounded transition-all glass-button ${
-            themeMode === 'DAY'
-              ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
-              : 'bg-slate-800 text-slate-300 border-white/10'
+          title={`Switch Theme to ${themeMode === 'NIGHT' ? 'Clean White & Electric Blue 🎨' : 'Deep Space Night 🌌'} Mode`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-mono font-semibold transition-all ${
+            themeMode === 'WHITE_BLUE'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-glow-accent'
+              : 'bg-slate-900 text-blue-300 border-blue-500/30 hover:bg-slate-800'
           }`}
         >
-          {themeMode === 'DAY' ? <SunMedium className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-blue-400" />}
+          <Palette className="w-3.5 h-3.5" />
+          <span>{themeMode === 'WHITE_BLUE' ? 'WHITE & BLUE ☀️' : 'DEEP SPACE 🌌'}</span>
         </button>
       </div>
 
@@ -147,7 +148,7 @@ export const Header = () => {
         {/* Voice Audio Toggle */}
         <button
           onClick={toggleAudioMuted}
-          title={audioMuted ? 'Unmute Neural Voice Alerts' : 'Mute Voice Alerts'}
+          title={audioMuted ? 'Unmute Voice Copilot 🗣️' : 'Mute Voice Copilot 🤫'}
           className={`p-1.5 rounded transition-all glass-button ${
             audioMuted ? 'text-rose-400 border-rose-500/30' : 'text-emerald-400 border-emerald-500/30'
           }`}
@@ -162,7 +163,7 @@ export const Header = () => {
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-medium rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all shadow-glow-isro"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>SIMULATOR</span>
+            <span>SIMULATOR 🎮</span>
           </button>
 
           <AnimatePresence>
@@ -174,7 +175,7 @@ export const Header = () => {
                 className="absolute right-0 mt-2 w-64 p-3 rounded-lg glass-panel border border-amber-500/20 shadow-2xl z-50 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between pb-2 border-b border-white/10 text-xs font-mono font-semibold text-amber-400">
-                  <span className="flex items-center gap-1.5"><Radio className="w-3.5 h-3.5" /> TELEMETRY SIMULATOR</span>
+                  <span className="flex items-center gap-1.5"><Radio className="w-3.5 h-3.5" /> EASY SIMULATOR CONTROLS</span>
                   <button onClick={() => setShowSimMenu(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
 
@@ -184,7 +185,7 @@ export const Header = () => {
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 text-left transition-colors"
                   >
                     <Play className="w-3.5 h-3.5 shrink-0" />
-                    <span>Advance Next Step (Normal)</span>
+                    <span>Advance Next Step (Good Job! 👍)</span>
                   </button>
 
                   <button
@@ -192,7 +193,7 @@ export const Header = () => {
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 text-left transition-colors"
                   >
                     <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
-                    <span>Trigger Out-of-Sequence Anomaly</span>
+                    <span>Trigger Out-of-Sequence (Oops! 🚨)</span>
                   </button>
 
                   <button
@@ -200,7 +201,7 @@ export const Header = () => {
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 text-left transition-colors"
                   >
                     <Zap className="w-3.5 h-3.5 shrink-0" />
-                    <span>Trigger Low Confidence</span>
+                    <span>Trigger Blurry Vision (Squint! 🧐)</span>
                   </button>
 
                   <button
@@ -208,7 +209,7 @@ export const Header = () => {
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 hover:bg-blue-500/20 text-left transition-colors"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Complete Full Sequence</span>
+                    <span>Complete Full Mission (High Five! 🎉)</span>
                   </button>
 
                   <div className="h-px bg-white/10 my-1" />
@@ -218,7 +219,7 @@ export const Header = () => {
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 text-left transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                    <span>Reset Protocol to Standby</span>
+                    <span>Reset Protocol to Start 🔄</span>
                   </button>
                 </div>
               </motion.div>
