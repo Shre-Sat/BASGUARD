@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useExperimentStore } from '../../store/useExperimentStore';
 import { 
   Clock, 
@@ -69,7 +70,7 @@ export const Header = () => {
     <header className="h-12 flex items-center justify-between px-4 bg-[#0A0E17]/90 backdrop-blur-md border-b border-white/10 shrink-0 z-30 select-none">
       {/* Left: Branding & ISRO Mission Mark */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="relative flex items-center justify-center w-7 h-7 rounded bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro">
             <div className="w-full h-full bg-[#0B101D] rounded flex items-center justify-center">
               <span className="text-[11px] font-black tracking-tighter text-amber-400 font-mono">ISRO</span>
@@ -85,7 +86,7 @@ export const Header = () => {
             </div>
             <span className="text-[10px] font-mono text-slate-400">Biological Activity Space Monitor (Easy AI 🚀)</span>
           </div>
-        </div>
+        </Link>
 
         <div className="h-4 w-px bg-white/10" />
 
