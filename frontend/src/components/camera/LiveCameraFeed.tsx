@@ -6,7 +6,8 @@ import {
   Scan,
   Video,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -26,6 +27,7 @@ export const LiveCameraFeed = () => {
   const [activeCam, setActiveCam] = useState<'CAM01' | 'CAM02' | 'WEBCAM'>('CAM01');
   const [shutterFlash, setShutterFlash] = useState(false);
   const [snapshotCount, setSnapshotCount] = useState(0);
+  const [webcamStatus, setWebcamStatus] = useState<'IDLE' | 'CONNECTING' | 'LIVE' | 'FALLBACK'>('IDLE');
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -36,28 +38,37 @@ export const LiveCameraFeed = () => {
     let stream: MediaStream | null = null;
 
     if (activeCam === 'WEBCAM') {
-      navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+      setWebcamStatus('CONNECTING');
+
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
         .then((s) => {
           stream = s;
           if (webcamVideoRef.current) {
             webcamVideoRef.current.srcObject = stream;
+            webcamVideoRef.current.onloadedmetadata = () => {
+              webcamVideoRef.current?.play().catch(err => console.log('Autoplay handle:', err));
+            };
           }
+          setWebcamStatus('LIVE');
           addAlert({
             severity: 'SUCCESS',
             type: 'SYSTEM',
-            message: 'User Hardware Webcam connected successfully for live astronaut step verification.',
+            message: 'User Hardware Webcam stream linked successfully.',
             acknowledged: false
           });
         })
         .catch((err) => {
-          console.error('Failed to access webcam:', err);
+          console.warn('Browser webcam access denied or unavailable. Switching to optical stream fallback:', err);
+          setWebcamStatus('FALLBACK');
           addAlert({
             severity: 'WARNING',
             type: 'SYSTEM',
-            message: 'Webcam permission denied or device not found.',
+            message: 'Webcam permission blocked by browser. Using Backend OpenCV Optical Feed.',
             acknowledged: false
           });
         });
+    } else {
+      setWebcamStatus('IDLE');
     }
 
     return () => {
@@ -81,7 +92,7 @@ export const LiveCameraFeed = () => {
   };
 
   useEffect(() => {
-    if (!demoMode || !canvasRef.current || activeCam === 'WEBCAM') return;
+    if (!demoMode || !canvasRef.current || (activeCam === 'WEBCAM' && webcamStatus === 'LIVE')) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -156,7 +167,7 @@ export const LiveCameraFeed = () => {
 
     renderHandSkeleton();
     return () => cancelAnimationFrame(animId);
-  }, [demoMode, experiment.currentStepId, activeCam]);
+  }, [demoMode, experiment.currentStepId, activeCam, webcamStatus]);
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#04070D] overflow-hidden select-none border border-white/5">
@@ -273,13 +284,38 @@ export const LiveCameraFeed = () => {
         {/* Real Hardware User Webcam Feed Viewport */}
         {activeCam === 'WEBCAM' ? (
           <div className="relative w-full h-full flex items-center justify-center bg-black">
-            <video 
-              ref={webcamVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover z-10"
-            />
+            {webcamStatus === 'LIVE' ? (
+              <video 
+                ref={webcamVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover z-10"
+              />
+            ) : webcamStatus === 'FALLBACK' ? (
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img 
+                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/video_feed`} 
+                  alt="ISRO BAS Live Camera Stream"
+                  className="w-full h-full object-contain z-10"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+
+                <canvas 
+                  ref={canvasRef} 
+                  width={800} 
+                  height={500} 
+                  className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" 
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-slate-400 font-mono z-30">
+                <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+                <span className="text-xs font-semibold">INITIALIZING HARDWARE WEBCAM STREAM...</span>
+              </div>
+            )}
 
             <div className="absolute top-[25%] left-[25%] w-[50%] h-[50%] border-2 border-emerald-400/80 rounded z-20 shadow-glow-success pointer-events-none">
               <div className="absolute -top-6 left-0 px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-mono shadow-md">
@@ -287,7 +323,7 @@ export const LiveCameraFeed = () => {
               </div>
             </div>
 
-            <div className="absolute top-4 right-4 z-30 flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-xs font-mono backdrop-blur-md">
+            <div className="absolute top-4 left-4 z-30 flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-xs font-mono backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span>HARDWARE WEBCAM ACTIVE</span>
             </div>
