@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
+import { LaunchPage } from './pages/LaunchPage';
 import { MissionControl } from './pages/MissionControl';
 import { Experiment } from './pages/Experiment';
 import { Scene } from './pages/Scene';
@@ -21,8 +22,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<AppShell />}>
-          <Route index element={<Navigate to="/mission-control" replace />} />
+        <Route path="/" element={<LaunchPage />} />
+        <Route element={<AppShell />}>
           <Route path="mission-control" element={<MissionControl />} />
           <Route path="experiment" element={<Experiment />} />
           <Route path="scene" element={<Scene />} />

@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { useExperimentStore } from '../store/useExperimentStore';
 import { ExperimentStatus } from '../components/experiment/ExperimentStatus';
-import { CheckCircle2, Circle, AlertTriangle, ArrowRight, ShieldCheck, Clock, Eye, Layers } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  Circle, 
+  AlertTriangle, 
+  ShieldCheck, 
+  Clock, 
+  Eye, 
+  Layers,
+  GitCommit
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const Experiment = () => {
-  const { protocol, experiment, updateExperiment } = useExperimentStore();
+  const { protocol, experiment } = useExperimentStore();
   const [selectedStepId, setSelectedStepId] = useState<string>(experiment.currentStepId);
 
   const selectedStep = protocol.find((p) => p.id === selectedStepId) || protocol[0];
@@ -12,7 +22,7 @@ export const Experiment = () => {
   const stepDetails: Record<string, { duration: string; objects: string[]; criteria: string; safety: string }> = {
     IDLE: {
       duration: '0s (Standby)',
-      objects: ['Baseline Camera Field'],
+      objects: ['Payload Camera FOV', 'Space Station Rack Frame'],
       criteria: 'Awaiting astronaut initiation signal.',
       safety: 'Payload doors closed and latched.'
     },
@@ -63,36 +73,36 @@ export const Experiment = () => {
   const details = stepDetails[selectedStep.id] || stepDetails['IDLE'];
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-bg-dark">
-      {/* Left Sidebar: Standard Step List */}
-      <div className="w-[360px] border-r border-border shrink-0 flex flex-col h-full bg-bg-panel/40">
+    <div className="flex h-full w-full overflow-hidden bg-[#04070D] font-sans select-none">
+      <div className="w-[380px] border-r border-white/10 shrink-0 flex flex-col h-full bg-[#050810]">
         <ExperimentStatus />
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-y-auto p-6 gap-6">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-border">
+        <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
-            <h1 className="text-base font-semibold text-text-primary tracking-tight">FSM Protocol State Machine</h1>
-            <p className="text-meta text-text-tertiary mt-0.5">
-              Finite State Machine sequence verification graph for ISRO BAS Biological Payload Experiment
+            <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-400" />
+              PETRI-NET FINITE STATE MACHINE REASONER
+            </h1>
+            <p className="text-xs font-mono text-slate-400 mt-1">
+              ISRO Biological Activity Space Protocol · Sequential Vector Verification Engine
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-meta px-2.5 py-1 rounded bg-accent-dim text-accent border border-accent/20 font-mono">
-              FSM v2.4.1 [ACTIVE]
+
+          <div className="flex items-center gap-3 font-mono text-xs">
+            <span className="px-3 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold shadow-glow-accent">
+              MODEL: PETRI-FSM v2.4.1
             </span>
           </div>
         </div>
 
-        {/* FSM Visual Graph Diagram */}
-        <div className="border border-border rounded bg-bg-panel p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-accent" /> Sequential Transition Pipeline
+        <div className="glass-panel p-6 rounded-xl border border-white/10 flex flex-col gap-4 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold font-mono text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <GitCommit className="w-4 h-4 text-emerald-400" /> TRANSITION PIPELINE DIAGRAM
             </h2>
-            <span className="text-meta text-text-tertiary">Click node to inspect criteria</span>
+            <span className="text-[11px] font-mono text-slate-400">Click any state node to inspect parameters</span>
           </div>
 
           <div className="grid grid-cols-4 gap-4 relative">
@@ -103,121 +113,110 @@ export const Experiment = () => {
               const isNext = experiment.nextStepId === step.id;
 
               return (
-                <div
+                <motion.div
                   key={step.id}
                   onClick={() => setSelectedStepId(step.id)}
-                  className={`relative p-4 rounded border cursor-pointer transition-all ${
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`relative p-4 rounded-lg border cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-accent bg-accent/10'
+                      ? 'border-blue-400 bg-blue-500/15 shadow-glow-accent'
                       : isActive
-                      ? 'border-accent/60 bg-accent/5'
+                      ? 'border-amber-400 bg-amber-500/15 shadow-glow-isro'
                       : isCompleted
-                      ? 'border-border-light bg-bg-dark/80 hover:border-text-tertiary'
+                      ? 'border-emerald-500/30 bg-emerald-500/5'
                       : isNext
-                      ? 'border-yellow-500/40 bg-yellow-500/5'
-                      : 'border-border/50 bg-bg-dark/40 opacity-70 hover:opacity-100'
+                      ? 'border-blue-500/30 bg-slate-900/60'
+                      : 'border-white/5 bg-slate-900/30 opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-meta font-mono text-text-tertiary">STEP 0{idx}</span>
+                    <span className="text-[10px] font-mono text-slate-400 font-bold">STATE P-0{idx + 1}</span>
                     {isCompleted ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     ) : isActive ? (
-                      <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
-                    ) : isNext ? (
-                      <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                      <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
                     ) : (
-                      <Circle className="w-4 h-4 text-text-tertiary/40" />
+                      <Circle className="w-4 h-4 text-slate-600" />
                     )}
                   </div>
-                  <h3 className="text-xs font-medium text-text-primary mb-1 truncate">{step.name}</h3>
-                  <p className="text-[11px] text-text-tertiary line-clamp-2 leading-relaxed">{step.description}</p>
-                </div>
+
+                  <h3 className="text-xs font-bold text-white mb-1 truncate">{step.name}</h3>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{step.description}</p>
+                </motion.div>
               );
             })}
           </div>
         </div>
 
-        {/* Node Inspection Panel & Verification Matrix */}
         <div className="grid grid-cols-2 gap-6">
-          {/* Node Details */}
-          <div className="border border-border rounded bg-bg-panel p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/60">
-              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider flex items-center gap-2">
-                <Eye className="w-4 h-4 text-accent" /> Step Inspector: {selectedStep.name}
+          <div className="glass-panel p-5 rounded-xl border border-white/10 flex flex-col gap-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-xs font-semibold font-mono text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <Eye className="w-4 h-4 text-blue-400" /> STATE INSPECTOR: {selectedStep.name}
               </h3>
-              <span className="text-meta font-mono text-accent">{selectedStep.id}</span>
+              <span className="text-xs font-mono text-blue-400 font-bold">{selectedStep.id}</span>
             </div>
 
-            <div className="flex flex-col gap-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-border/40">
-                <span className="text-text-tertiary flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" /> Target Duration
+            <div className="flex flex-col gap-3 font-mono text-xs">
+              <div className="flex justify-between py-1.5 border-b border-white/5">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" /> Nominal Step Duration:
                 </span>
-                <span className="font-mono text-text-primary">{details.duration}</span>
+                <span className="text-slate-100 font-semibold">{details.duration}</span>
               </div>
 
-              <div className="flex flex-col gap-1 py-1.5 border-b border-border/40">
-                <span className="text-text-tertiary">Target Perception Objects</span>
+              <div className="flex flex-col gap-1 py-1.5 border-b border-white/5">
+                <span className="text-slate-400">Target Perception Objects:</span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {details.objects.map((obj) => (
-                    <span key={obj} className="px-2 py-0.5 rounded bg-bg-dark border border-border text-[11px] font-mono text-text-secondary">
+                    <span key={obj} className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-[10px] text-blue-300">
                       {obj}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1 py-1.5 border-b border-border/40">
-                <span className="text-text-tertiary flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> AI Detection Criteria
+              <div className="flex flex-col gap-1 py-1.5 border-b border-white/5">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> AI Perception Criteria:
                 </span>
-                <p className="text-text-secondary leading-relaxed mt-0.5">{details.criteria}</p>
+                <p className="text-slate-200 font-sans text-xs leading-relaxed mt-0.5">{details.criteria}</p>
               </div>
 
               <div className="flex flex-col gap-1 py-1.5">
-                <span className="text-text-tertiary flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" /> Safety & Containment Constraint
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> Safety & Containment Guard:
                 </span>
-                <p className="text-text-secondary leading-relaxed mt-0.5">{details.safety}</p>
+                <p className="text-slate-200 font-sans text-xs leading-relaxed mt-0.5">{details.safety}</p>
               </div>
             </div>
-
-            {experiment.currentStepId !== selectedStep.id && (
-              <button
-                onClick={() => updateExperiment({ currentStepId: selectedStep.id })}
-                className="mt-2 text-xs font-mono py-2 px-3 rounded bg-accent/20 text-accent border border-accent/40 hover:bg-accent/30 transition-colors flex items-center justify-center gap-2"
-              >
-                Set Active State to {selectedStep.id} <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
 
-          {/* Compliance & Transition Log Matrix */}
-          <div className="border border-border rounded bg-bg-panel p-5 flex flex-col gap-4">
-            <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider pb-3 border-b border-border/60">
-              State Machine Rules & Vector Guards
+          <div className="glass-panel p-5 rounded-xl border border-white/10 flex flex-col gap-4 shadow-xl">
+            <h3 className="text-xs font-semibold font-mono text-slate-200 uppercase tracking-wider pb-3 border-b border-white/10">
+              PETRI-NET TRANSITION RULES & GUARDS
             </h3>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded bg-bg-dark border border-border/60">
-                <span className="font-mono text-accent text-[11px]">RULE 01 // STRICT SEQUENCING</span>
-                <p className="text-text-tertiary mt-1 leading-relaxed">
-                  Skipping steps triggers immediate <span className="text-rose-400 font-mono">OUT_OF_SEQUENCE</span> alert to ground control.
+            <div className="space-y-3 font-mono text-xs">
+              <div className="p-3 rounded-lg bg-slate-900/60 border border-white/5">
+                <span className="text-blue-400 font-bold text-[11px]">GUARD 01 // DETERMINISTIC SEQUENCING</span>
+                <p className="text-slate-300 font-sans text-xs mt-1 leading-relaxed">
+                  Tokens cannot jump out-of-order states. Any skipped transition generates immediate <span className="text-rose-400 font-mono">OUT_OF_SEQUENCE</span> neural voice alert.
                 </p>
               </div>
 
-              <div className="p-3 rounded bg-bg-dark border border-border/60">
-                <span className="font-mono text-accent text-[11px]">RULE 02 // HAND-OBJECT CONTACT GRAPH</span>
-                <p className="text-text-tertiary mt-1 leading-relaxed">
-                  Manipulation state change requires minimum 12 continuous frames of contact vector validation before advancing step.
+              <div className="p-3 rounded-lg bg-slate-900/60 border border-white/5">
+                <span className="text-blue-400 font-bold text-[11px]">GUARD 02 // GRASP VECTOR CONFIRMATION</span>
+                <p className="text-slate-300 font-sans text-xs mt-1 leading-relaxed">
+                  Manipulation step transition requires 12 continuous frames of MediaPipe hand-box vector contact.
                 </p>
               </div>
 
-              <div className="p-3 rounded bg-bg-dark border border-border/60">
-                <span className="font-mono text-accent text-[11px]">RULE 03 // LOW CONFIDENCE TIMEOUT</span>
-                <p className="text-text-tertiary mt-1 leading-relaxed">
-                  If confidence drops below 60% for &gt;5 seconds, astronaut voice prompt is dispatched automatically.
+              <div className="p-3 rounded-lg bg-slate-900/60 border border-white/5">
+                <span className="text-blue-400 font-bold text-[11px]">GUARD 03 // ANOMALY DURATION TIMEOUT</span>
+                <p className="text-slate-300 font-sans text-xs mt-1 leading-relaxed">
+                  If step duration exceeds 1.5x nominal limit, Piper TTS triggers prompt warning to astronaut.
                 </p>
               </div>
             </div>

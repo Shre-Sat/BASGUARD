@@ -7,42 +7,39 @@ import { Viewer3D } from '../components/viewer3d/Viewer3D';
 
 export const MissionControl = () => {
   return (
-    <div className="flex h-full w-full overflow-hidden">
-
-      {/* ─── LEFT: Primary — Live Perception + 3D ─── */}
-      <div className="flex-[3] flex flex-col min-w-0 border-r border-border">
-        {/* Perception feed — dominant */}
-        <div className="flex-[3] min-h-0">
+    <div className="flex h-full w-full overflow-hidden bg-[#04070D]">
+      {/* ─── LEFT: Primary Viewports — Perception Feed + 3D Viewport ─── */}
+      <div className="flex-[3] flex flex-col min-w-0 border-r border-white/10">
+        {/* Live Perception HUD Camera Stream — Dominant Centerpiece */}
+        <div className="flex-[3] min-h-0 border-b border-white/10 relative">
           <LiveCameraFeed />
         </div>
 
-        <div className="divider-h" />
-
-        {/* 3D Scene — tertiary */}
-        <div className="flex-[1] min-h-0">
+        {/* 3D Telemetry Viewer */}
+        <div className="flex-[2] min-h-0 relative">
           <Viewer3D />
         </div>
       </div>
 
-      {/* ─── RIGHT: Secondary — State + Alerts + Health ─── */}
-      <div className="w-[420px] flex flex-col shrink-0 min-h-0">
-        {/* Experiment state — secondary importance */}
-        <div className="flex-[2] min-h-0 border-b border-border">
+      {/* ─── RIGHT: State Machine + Alerts + System Health + Log Stream ─── */}
+      <div className="w-[430px] flex flex-col shrink-0 min-h-0 bg-[#050810]">
+        {/* FSM State Machine Tracker */}
+        <div className="flex-[2.2] min-h-0 border-b border-white/10">
           <ExperimentStatus />
         </div>
 
-        {/* Alerts — tertiary */}
-        <div className="flex-[2] min-h-0 border-b border-border">
+        {/* Anomaly & Alert Center */}
+        <div className="flex-[1.8] min-h-0 border-b border-white/10">
           <AlertsPanel />
         </div>
 
-        {/* System Health — tertiary */}
-        <div className="flex-none border-b border-border">
+        {/* System Health Hardware Meters */}
+        <div className="flex-none border-b border-white/10">
           <SystemHealth />
         </div>
 
-        {/* Event Log — bottom */}
-        <div className="flex-[1] min-h-0">
+        {/* Live Terminal Log Stream */}
+        <div className="flex-[1.5] min-h-0">
           <LogViewer />
         </div>
       </div>
