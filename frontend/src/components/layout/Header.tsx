@@ -71,9 +71,10 @@ export const Header = () => {
       {/* Left: Branding & ISRO Mission Mark */}
       <div className="flex items-center gap-4">
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <div className="relative flex items-center justify-center w-7 h-7 rounded bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro">
+          <img src="/basguard-logo.png" alt="BASGUARD Logo" className="h-7 w-auto object-contain drop-shadow-sm" />
+          <div className="relative flex items-center justify-center w-6 h-6 rounded bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro">
             <div className="w-full h-full bg-[#0B101D] rounded flex items-center justify-center">
-              <span className="text-[11px] font-black tracking-tighter text-amber-400 font-mono">ISRO</span>
+              <span className="text-[10px] font-black tracking-tighter text-amber-400 font-mono">ISRO</span>
             </div>
           </div>
 

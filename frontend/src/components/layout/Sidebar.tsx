@@ -6,8 +6,7 @@ import {
   Terminal,
   Cpu,
   Settings,
-  Radio,
-  ShieldCheck
+  Radio
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -26,8 +25,8 @@ export const Sidebar = () => {
       <div className="flex flex-col items-center gap-6 w-full">
         {/* Brand Crest */}
         <NavLink to="/" className="relative group flex items-center justify-center cursor-pointer">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-glow-accent border border-blue-400/30">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-lg bg-[#0B101D] flex items-center justify-center shadow-glow-accent border border-blue-400/30 p-1">
+            <img src="/basguard-logo.png" alt="BASGUARD Logo" className="w-full h-full object-contain" />
           </div>
           <div className="absolute left-14 px-2.5 py-1 rounded bg-slate-900 border border-white/10 text-xs font-mono text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all shadow-xl z-50">
             Launch Page &amp; Mission Overview 🚀

@@ -74,8 +74,16 @@ export const LaunchPage = () => {
 
       {/* Top Navigation Bar */}
       <header className="h-16 px-8 flex items-center justify-between z-20 border-b border-white/10 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro flex items-center justify-center">
+        <div className="flex items-center gap-4">
+          <img 
+            src="/basguard-logo.png" 
+            alt="BASGUARD Official Emblem" 
+            className="h-10 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform" 
+          />
+
+          <div className="h-6 w-px bg-white/10" />
+
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 p-[1px] shadow-glow-isro flex items-center justify-center">
             <div className="w-full h-full bg-[#0B101D] rounded-xl flex items-center justify-center">
               <span className="text-xs font-black tracking-tighter text-amber-400 font-mono">ISRO</span>
             </div>
@@ -118,14 +126,29 @@ export const LaunchPage = () => {
       </header>
 
       {/* Main Center Content Section */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 z-20 max-w-5xl mx-auto text-center relative">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 z-20 max-w-5xl mx-auto text-center relative py-4">
         
+        {/* BASGUARD Official Shield Emblem Hero */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="relative mb-4"
+        >
+          <div className="absolute inset-0 bg-blue-500/25 rounded-full blur-3xl animate-pulse-ring" />
+          <img 
+            src="/basguard-logo.png" 
+            alt="BASGUARD Official Mission Crest Logo" 
+            className="h-28 sm:h-36 w-auto object-contain relative z-10 filter drop-shadow-[0_12px_30px_rgba(37,99,235,0.45)] hover:scale-105 transition-transform duration-300"
+          />
+        </motion.div>
+
         {/* Animated ISRO Emblem Badge */}
         <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.9 }}
+          initial={{ opacity: 0, y: -10, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-6 shadow-glow-isro"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4 shadow-glow-isro"
         >
           <Sparkles className="w-4 h-4 animate-spin-slow" />
           <span className="font-semibold">ISRO SPACE EXPERIMENT AUDIT AI SYSTEM</span>
